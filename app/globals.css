@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
-:root {
+/* :root {
   --background: #ffffff;
   --foreground: #171717;
-}
+} */
 
 @theme inline {
   --color-background: var(--background);
@@ -23,4 +23,122 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+@supports (padding: env(safe-area-inset-bottom)) {
+  .bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Agar extra space chahiye (common in iPhones) */
+@supports (padding-bottom: constant(safe-area-inset-bottom)) {
+  .bottom-nav {
+    padding-bottom: constant(safe-area-inset-bottom);
+  }
+}
+/* Sonner Toast - Adaptive for Light & Dark Theme */
+[data-sonner-toast] {
+  border-radius: 9999px;
+  /* rounded-full */
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  padding: 1.25rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-bottom-width: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 340px;
+  max-width: 92vw;
+}
+
+/* Light Theme (default) */
+:root {
+  --toast-bg: #ffffff;
+  --toast-text: #171717;
+  --toast-border-success: rgb(16 185 129);
+  /* emerald-500 */
+  --toast-border-error: rgb(239 68 68);
+  --toast-border-warning: rgb(245 158 11);
+  --toast-border-info: rgb(59 130 246);
+  --toast-button-hover: rgba(0, 0, 0, 0.1);
+}
+
+/* Dark Theme */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --toast-bg: rgb(15 23 42);
+    /* slate-900 */
+    --toast-text: white;
+    --toast-button-hover: rgba(255, 255, 255, 0.15);
+  }
+}
+
+[data-sonner-toast] {
+  background-color: var(--toast-bg);
+  color: var(--toast-text);
+}
+
+/* Success */
+[data-sonner-toast][data-type="success"] {
+  border-color: var(--toast-border-success);
+}
+
+/* Error */
+[data-sonner-toast][data-type="error"] {
+  border-color: var(--toast-border-error);
+}
+
+/* Warning */
+[data-sonner-toast][data-type="warning"] {
+  border-color: var(--toast-border-warning);
+}
+
+/* Info */
+[data-sonner-toast][data-type="info"] {
+  border-color: var(--toast-border-info);
+}
+
+/* Close button & icons */
+[data-sonner-toast] button {
+  background: transparent;
+  color: var(--toast-text);
+  opacity: 0.7;
+  border-radius: 9999px;
+}
+
+[data-sonner-toast] button:hover {
+  background: var(--toast-button-hover);
+}
+
+/* Optional: Icons ko bhi theme ke hisaab se adjust (if needed) */
+[data-sonner-toast] .sonner-icon svg {
+  stroke: var(--toast-text);
+}
+
+/* Hide scrollbar but allow scroll */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  /* IE/Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}
+/* app/globals.css ke end mein paste karein */
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
