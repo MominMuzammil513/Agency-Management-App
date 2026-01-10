@@ -3,15 +3,17 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { db } from "@/db/db";
 import { users } from "@/db/schemas";
-import { and, eq, inArray, desc } from "drizzle-orm"; // Added desc for ordering
+import { and, eq, inArray, desc } from "drizzle-orm";
 import StaffList from "./components/StaffList";
 import { Users } from "lucide-react";
+import { redirect } from "next/navigation";
+import { Staff, StaffRole } from "./components/types";
 
 export default async function ManageStaffPage() {
   const session = await getServerSession(authOptions);
 
   if (!session || session.user.role !== "owner_admin") {
-    throw new Error("Unauthorized");
+    redirect("/login");
   }
 
   const [owner] = await db
@@ -21,10 +23,11 @@ export default async function ManageStaffPage() {
     .limit(1);
 
   if (!owner?.agencyId) {
-    throw new Error("Owner agency not found");
+    return <div className="p-10 text-red-500">Error: Agency not found</div>;
   }
 
-  const staff = await db
+  // Fetch ALL staff (Active + Inactive)
+  const rawStaff = await db
     .select({
       id: users.id,
       name: users.name,
@@ -32,17 +35,24 @@ export default async function ManageStaffPage() {
       mobile: users.mobile,
       altMobile: users.altMobile,
       role: users.role,
-      isActive: users.isActive,
+      isActive: users.isActive, // Ye zaroori hai
       createdAt: users.createdAt,
     })
     .from(users)
     .where(
       and(
         eq(users.agencyId, owner.agencyId),
-        inArray(users.role, ["salesman", "delivery_boy"])
+        inArray(users.role, ["salesman", "delivery_boy"]) 
+        // ❌ Yahan 'isActive: true' mat lagana, warna inactive log gayab ho jayenge
       )
     )
-    .orderBy(desc(users.createdAt)); // Newest first
+    .orderBy(desc(users.createdAt));
+
+  const formattedStaff: Staff[] = rawStaff.map((s) => ({
+    ...s,
+    createdAt: new Date(s.createdAt).toISOString(),
+    role: s.role as StaffRole,
+  }));
 
   return (
     <div className="min-h-screen bg-emerald-50/60 font-sans pb-24">
@@ -54,7 +64,7 @@ export default async function ManageStaffPage() {
           </div>
         }
       >
-        <StaffList initialStaff={staff as any} />
+        <StaffList initialStaff={formattedStaff} />
       </Suspense>
     </div>
   );

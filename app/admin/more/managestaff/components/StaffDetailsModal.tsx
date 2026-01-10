@@ -1,8 +1,8 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { X, Mail, Phone, Shield, Power, Trash2, Edit } from "lucide-react";
-import { Staff } from "./types";
+import { X, Mail, Phone, Shield, Power, Edit, Smartphone } from "lucide-react";
+import { Staff } from "./types"; // Import from types
 import { useEffect, useState } from "react";
 
 export default function StaffDetailsModal({
@@ -24,9 +24,8 @@ export default function StaffDetailsModal({
   if (!mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-9999 p-4 animate-in fade-in">
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-in fade-in">
       <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-6 shadow-2xl relative animate-in zoom-in-95 ring-8 ring-white/20">
-        {/* Close Button */}
         <button
           onClick={onClose}
           className="absolute top-5 right-5 p-2 bg-slate-50 text-slate-400 rounded-full hover:bg-red-50 hover:text-red-500 transition-colors"
@@ -34,7 +33,6 @@ export default function StaffDetailsModal({
           <X size={20} />
         </button>
 
-        {/* Header */}
         <div className="text-center mt-2 mb-6">
           <div
             className={`w-20 h-20 mx-auto rounded-3xl flex items-center justify-center text-3xl font-black mb-3 shadow-lg ${
@@ -55,7 +53,6 @@ export default function StaffDetailsModal({
           </p>
         </div>
 
-        {/* Details Box */}
         <div className="bg-slate-50 rounded-2xl p-5 space-y-4 mb-6 border border-slate-100">
           <div className="flex items-center gap-3 text-slate-700">
             <div className="p-2 bg-white rounded-lg text-emerald-500 shadow-sm">
@@ -69,6 +66,12 @@ export default function StaffDetailsModal({
             </div>
             <span className="text-sm font-medium">{staff.mobile}</span>
           </div>
+          {staff.altMobile && <div className="flex items-center gap-3 text-slate-700">
+            <div className="p-2 bg-white rounded-lg text-emerald-500 shadow-sm">
+              <Smartphone size={16} />
+            </div>
+            <span className="text-sm font-medium">{staff.altMobile && staff.altMobile}</span>
+          </div>}
           <div className="flex items-center gap-3 text-slate-700">
             <div className="p-2 bg-white rounded-lg text-emerald-500 shadow-sm">
               <Shield size={16} />
@@ -79,7 +82,6 @@ export default function StaffDetailsModal({
           </div>
         </div>
 
-        {/* Actions Grid */}
         <div className="flex flex-col justify-center items-center w-full gap-3">
           <button
             onClick={onEdit}
@@ -98,13 +100,6 @@ export default function StaffDetailsModal({
           >
             <Power size={18} /> {staff.isActive ? "Deactivate" : "Activate"}
           </button>
-
-          {/* <button
-            onClick={onDelete}
-            className="bg-red-50 text-red-600 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-100 active:scale-95 transition-all text-sm"
-          >
-            <Trash2 size={18} /> Delete
-          </button> */}
         </div>
       </div>
     </div>,

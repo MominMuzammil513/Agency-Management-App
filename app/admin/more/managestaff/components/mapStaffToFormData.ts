@@ -1,7 +1,6 @@
-import { Staff } from "./types";
-import { CreateStaffInput } from "@/lib/zod.schema/create-staff";
+import { Staff, StaffFormData } from "./types";
 
-export function mapStaffToFormData(staff: Staff): Partial<CreateStaffInput> {
+export function mapStaffToFormData(staff: Staff): StaffFormData {
   if (staff.role !== "salesman" && staff.role !== "delivery_boy") {
     throw new Error("Invalid staff role for edit");
   }
@@ -12,5 +11,6 @@ export function mapStaffToFormData(staff: Staff): Partial<CreateStaffInput> {
     mobile: staff.mobile,
     altMobile: staff.altMobile ?? "",
     role: staff.role,
+    password: "", // ✅ Initialize as empty string for Edit mode
   };
 }

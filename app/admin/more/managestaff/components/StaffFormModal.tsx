@@ -2,21 +2,19 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X, Loader2, Eye, EyeOff } from "lucide-react";
+import { X, Loader2, Eye, EyeOff } from "lucide-react"; // ✅ Imported Eye Icons
 import { createPortal } from "react-dom";
 import { useEffect, useState, useMemo } from "react";
-import {
-  createStaffSchema,
-  CreateStaffInput,
-} from "@/lib/zod.schema/create-staff";
+import { createStaffSchema } from "@/lib/zod.schema/create-staff";
 import { FormError } from "./FormError";
 import * as z from "zod";
+import { StaffFormData } from "./types";
 
 interface StaffFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: CreateStaffInput) => void;
-  initialData?: Partial<CreateStaffInput>;
+  onSubmit: (data: StaffFormData) => Promise<void>;
+  initialData?: Partial<StaffFormData>;
   isEdit?: boolean;
 }
 
@@ -29,23 +27,37 @@ export default function StaffFormModal({
 }: StaffFormModalProps) {
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false); // 👁️ Show Password State
+  const [showPassword, setShowPassword] = useState(false); // ✅ Toggle State
 
   useEffect(() => setMounted(true), []);
 
-  // 🔥 Fix: Edit mode mein Password required nahi hona chahiye
-  // Hum dynamically schema change kar rahe hain
+  // 🔹 Dynamic Schema: Handles "Optional Password" logic for Edit Mode
   const dynamicSchema = useMemo(() => {
     if (isEdit) {
-      // Agar Edit hai to password field ko schema se hata do
-      // Note: createStaffSchema must be a z.object() for .omit to work
-      // Agar .omit error de, to check karo ki schema z.object hai ya nahi
-      return (createStaffSchema as any).omit({ password: true });
+      // Create a relaxed schema for Edit
+      // We assume createStaffSchema is an object schema
+      if (createStaffSchema instanceof z.ZodObject) {
+        return createStaffSchema
+          .extend({
+            password: z.string().optional(), // Allow empty/undefined initially
+          })
+          .refine(
+            (data) => {
+              // If user typed a password, it must be >= 6 chars
+              if (data.password && data.password.length > 0 && data.password.length < 6) {
+                return false;
+              }
+              return true;
+            },
+            { message: "Password must be at least 6 characters", path: ["password"] }
+          );
+      }
     }
+    // Create Mode: Strict (Password required)
     return createStaffSchema;
   }, [isEdit]);
 
-  const form = useForm<CreateStaffInput>({
+  const form = useForm<StaffFormData>({
     resolver: zodResolver(dynamicSchema),
     defaultValues: {
       name: "",
@@ -58,8 +70,12 @@ export default function StaffFormModal({
     },
   });
 
-  const handleSubmitWrapper = async (data: CreateStaffInput) => {
+  const handleSubmitWrapper = async (data: StaffFormData) => {
     setLoading(true);
+    // If editing and password is empty string, make it undefined so backend ignores it
+    if (isEdit && data.password === "") {
+      delete data.password;
+    }
     await onSubmit(data);
     setLoading(false);
   };
@@ -73,8 +89,9 @@ export default function StaffFormModal({
   if (!isOpen || !mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-9999 p-4 animate-in fade-in">
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-in fade-in">
       <div className="bg-white rounded-[2.5rem] max-w-md w-full p-8 shadow-2xl relative animate-in zoom-in-95 ring-8 ring-white/20 max-h-[90vh] overflow-y-auto">
+        
         <button
           onClick={onClose}
           className="absolute top-5 right-5 p-2 bg-slate-50 text-slate-400 rounded-full hover:bg-red-50 hover:text-red-500 transition-colors"
@@ -83,13 +100,12 @@ export default function StaffFormModal({
         </button>
 
         <h2 className="text-2xl font-black text-center text-slate-800 mb-6">
-          {isEdit ? "Update Member ✏️" : "New Member ✨"}
+          {isEdit ? "Update Profile ✏️" : "New Member ✨"}
         </h2>
 
-        <form
-          onSubmit={handleSubmit(handleSubmitWrapper)}
-          className="space-y-4"
-        >
+        <form onSubmit={handleSubmit(handleSubmitWrapper)} className="space-y-4">
+          
+          {/* Name Field */}
           <div>
             <label className="text-xs font-bold text-slate-400 uppercase ml-2">
               Full Name
@@ -102,6 +118,7 @@ export default function StaffFormModal({
             <FormError error={errors.name} />
           </div>
 
+          {/* Email Field (Now Editable) */}
           <div>
             <label className="text-xs font-bold text-slate-400 uppercase ml-2">
               Email (Login ID)
@@ -109,40 +126,39 @@ export default function StaffFormModal({
             <input
               {...register("email")}
               type="email"
-              disabled={isEdit} // 🔒 Email edit mat karne do (consistency ke liye)
-              className={`w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:ring-2 focus:ring-emerald-400 outline-none transition-all ${
-                isEdit ? "opacity-60 cursor-not-allowed" : ""
-              }`}
+              // ✅ Removed disabled={isEdit} so admin can update email
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:ring-2 focus:ring-emerald-400 outline-none transition-all"
               placeholder="rahul@agency.com"
             />
             <FormError error={errors.email} />
           </div>
 
-          {/* 👁️ Password Field with Show/Hide Toggle */}
-          {!isEdit && (
+          {/* Password Field (With Show/Hide) */}
+          <div className="relative">
+            <label className="text-xs font-bold text-slate-400 uppercase ml-2">
+              {isEdit ? "New Password (Optional)" : "Password"}
+            </label>
             <div className="relative">
-              <label className="text-xs font-bold text-slate-400 uppercase ml-2">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  {...register("password")}
-                  type={showPassword ? "text" : "password"}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:ring-2 focus:ring-emerald-400 outline-none transition-all pr-12"
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-600 transition-colors p-1"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-              <FormError error={errors.password} />
+              <input
+                {...register("password")}
+                // ✅ Toggle Type based on state
+                type={showPassword ? "text" : "password"} 
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:ring-2 focus:ring-emerald-400 outline-none transition-all pr-12"
+                placeholder={isEdit ? "Leave blank to keep current" : "••••••••"}
+              />
+              {/* ✅ Eye Button */}
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-600 transition-colors p-2 rounded-full hover:bg-slate-100"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
-          )}
+            <FormError error={errors.password} />
+          </div>
 
+          {/* Mobile Fields */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-bold text-slate-400 uppercase ml-2">
@@ -171,13 +187,14 @@ export default function StaffFormModal({
             </div>
           </div>
 
+          {/* Role Selection */}
           <div>
             <label className="text-xs font-bold text-slate-400 uppercase ml-2">
               Role
             </label>
             <select
               {...register("role")}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:ring-2 focus:ring-emerald-400 outline-none transition-all appearance-none"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:ring-2 focus:ring-emerald-400 outline-none transition-all appearance-none cursor-pointer"
             >
               <option value="salesman">Sales Person</option>
               <option value="delivery_boy">Delivery Boy</option>
@@ -185,6 +202,7 @@ export default function StaffFormModal({
             <FormError error={errors.role} />
           </div>
 
+          {/* Buttons */}
           <div className="pt-4 flex gap-3">
             <button
               type="button"

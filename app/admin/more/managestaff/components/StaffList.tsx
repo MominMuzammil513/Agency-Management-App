@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Plus, Users } from "lucide-react";
@@ -8,9 +8,9 @@ import StaffCard from "./StaffCard";
 import StaffFormModal from "./StaffFormModal";
 import DeleteConfirmModal from "./DeleteConfirmModal";
 import StaffDetailsModal from "./StaffDetailsModal";
+import BackButton from "@/components/ui/BackButton";
 import { Staff, StaffFormData } from "./types";
 import { mapStaffToFormData } from "./mapStaffToFormData";
-import BackButton from "@/components/ui/BackButton"; // Make sure you have this from previous steps
 
 interface StaffListProps {
   initialStaff: Staff[];
@@ -19,7 +19,14 @@ interface StaffListProps {
 export default function StaffList({ initialStaff }: StaffListProps) {
   const router = useRouter();
 
+  // Local state for UI
   const [staffList, setStaffList] = useState<Staff[]>(initialStaff);
+  
+  // Sync with Server Data
+  useEffect(() => {
+    setStaffList(initialStaff);
+  }, [initialStaff]);
+
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -43,22 +50,27 @@ export default function StaffList({ initialStaff }: StaffListProps) {
       toast.success(
         editingStaff ? "Staff updated ✨" : "Welcome new member! 🎉"
       );
+      
       setIsFormOpen(false);
       setEditingStaff(null);
-      setSelectedStaff(null);
-      router.refresh();
-    } catch (e: any) {
-      toast.error(e.message);
+      setSelectedStaff(null); // Close details modal after edit
+      router.refresh(); 
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : "An error occurred";
+      toast.error(errorMessage);
     }
   };
 
-  // 🔹 Toggle Active/Inactive Status
+  // 🔹 Toggle Active/Inactive Status (Updated Logic)
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     try {
-      const res = await fetch(`/api/auth/staff/${id}`, {
+      const newStatus = !currentStatus; // Calculate expected status
+
+      // 🔥 Note: Route ab '/status' wala use hoga
+      const res = await fetch(`/api/auth/staff/${id}/status`, { 
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive: !currentStatus }),
+        body: JSON.stringify({ isActive: newStatus }),
       });
 
       if (!res.ok) throw new Error("Update failed");
@@ -67,14 +79,29 @@ export default function StaffList({ initialStaff }: StaffListProps) {
         currentStatus ? "Staff Deactivated 💤" : "Staff Activated 🚀"
       );
 
-      // Local State Update (Fast Feedback)
+      // 🔥 CRITICAL FIX: Dono jagah update karo (List + Modal)
+      // Isse Modal band nahi hoga aur naya status dikhega
+      let updatedStaffMember: Staff | null = null;
+
       setStaffList((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, isActive: !s.isActive } : s))
+        prev.map((s) => {
+          if (s.id === id) {
+            updatedStaffMember = { ...s, isActive: newStatus };
+            return updatedStaffMember;
+          }
+          return s;
+        })
       );
-      setSelectedStaff(null); // Close modal
-      router.refresh();
-    } catch (e: any) {
-      toast.error(e.message);
+
+      // Agar modal khula hai, toh usko bhi update karo
+      if (selectedStaff?.id === id && updatedStaffMember) {
+        setSelectedStaff(updatedStaffMember);
+      }
+      
+      router.refresh(); 
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : "An error occurred";
+      toast.error(errorMessage);
     }
   };
 
@@ -90,9 +117,10 @@ export default function StaffList({ initialStaff }: StaffListProps) {
       toast.success("Staff member removed 👋");
       setDeleteId(null);
       setSelectedStaff(null);
-      router.refresh();
-    } catch (e: any) {
-      toast.error(e.message);
+      router.refresh(); 
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : "An error occurred";
+      toast.error(errorMessage);
     }
   };
 
@@ -117,8 +145,7 @@ export default function StaffList({ initialStaff }: StaffListProps) {
             onClick={() => setIsFormOpen(true)}
             className="bg-emerald-600 text-white px-4 py-3 rounded-2xl font-bold hover:bg-emerald-700 shadow-lg shadow-emerald-200 active:scale-95 transition-all flex items-center gap-2"
           >
-            <Plus size={20} />{" "}
-            <span className="hidden sm:inline">Add Staff</span>
+            <Plus size={20} /> <span className="hidden sm:inline">Add Staff</span>
           </button>
         </div>
       </div>

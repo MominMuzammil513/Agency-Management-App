@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronRight, ShieldCheck, Truck } from "lucide-react";
-import { Staff } from "./types";
+import { Staff } from "./types"; // Import types
 
 interface StaffCardProps {
   staff: Staff;
@@ -9,7 +9,6 @@ interface StaffCardProps {
 }
 
 export default function StaffCard({ staff, onClick }: StaffCardProps) {
-  // Initials for Avatar
   const initials = staff.name
     .split(" ")
     .map((n) => n[0])
@@ -20,13 +19,11 @@ export default function StaffCard({ staff, onClick }: StaffCardProps) {
   return (
     <div
       onClick={onClick}
-      className="group bg-white p-5 rounded-4xl border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-emerald-100/40 hover:-translate-y-1 transition-all duration-300 cursor-pointer relative overflow-hidden"
+      className="group bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-emerald-100/40 hover:-translate-y-1 transition-all duration-300 cursor-pointer relative overflow-hidden"
     >
-      {/* Decorative Blur */}
       <div className="absolute -top-6 -right-6 w-20 h-20 bg-emerald-50 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
       <div className="flex items-center gap-4 relative z-10">
-        {/* Avatar */}
         <div
           className={`h-14 w-14 rounded-2xl flex items-center justify-center text-xl font-black shadow-inner ${
             staff.isActive
@@ -43,7 +40,6 @@ export default function StaffCard({ staff, onClick }: StaffCardProps) {
           </h3>
 
           <div className="flex items-center gap-2 mt-1">
-            {/* Role Badge */}
             <span
               className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wide flex items-center gap-1 w-fit ${
                 staff.role === "salesman"
@@ -59,7 +55,6 @@ export default function StaffCard({ staff, onClick }: StaffCardProps) {
               {staff.role === "salesman" ? "Sales" : "Delivery"}
             </span>
 
-            {/* Status Dot */}
             <div
               className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                 staff.isActive
