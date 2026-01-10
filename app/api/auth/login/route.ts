@@ -1,7 +1,7 @@
 // app/api/auth/login/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/db"; // adjust path if needed (src/db/index.ts)
-import { users } from "@/db/schema";
+import { users } from "@/db/schemas";
 import { eq } from "drizzle-orm";
 
 // Temporary hardcoded password for testing only
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
       .select({
         id: users.id,
         email: users.email,
-        fullName: users.fullName,
+        fullName: users.name,
         role: users.role,
         isActive: users.isActive,
       })
