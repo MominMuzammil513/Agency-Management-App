@@ -2,9 +2,10 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom"; // 🔥 Portal added
 import { toast } from "sonner";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, X } from "lucide-react";
 import { productSchema, ProductFormData } from "@/lib/zod.schema/products";
 import { useRouter } from "next/navigation";
 
@@ -20,7 +21,10 @@ interface AddProductProps {
 export default function AddProduct({ categories }: AddProductProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false); // For hydration safety
   const router = useRouter();
+
+  useEffect(() => setMounted(true), []);
 
   const {
     register,
@@ -34,12 +38,11 @@ export default function AddProduct({ categories }: AddProductProps) {
       categoryId: "",
       purchasePrice: 0,
       sellingPrice: 0,
-      imageUrl: "https://via.placeholder.com/150", // ✅ default so validation never blocks
+      imageUrl: "https://via.placeholder.com/150",
     },
   });
 
   const onSubmit = async (data: ProductFormData) => {
-    console.log("Submitting product:", data); // ✅ debug log
     setLoading(true);
     try {
       const res = await fetch("/api/products", {
@@ -54,156 +57,155 @@ export default function AddProduct({ categories }: AddProductProps) {
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.message || "Failed to add product");
+        throw new Error(err.message || "Failed");
       }
 
-      toast.success("Product added successfully!");
+      toast.success("Product added! 🎉");
       reset();
       setIsOpen(false);
-      router.refresh(); // ✅ Next.js way to refresh
+      router.refresh();
     } catch (err: any) {
-      toast.error(err.message || "Something went wrong");
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  if (!isOpen) {
-    return (
+  return (
+    <>
       <button
         onClick={() => setIsOpen(true)}
-        className="bg-orange-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-orange-700 shadow-lg"
+        className="bg-emerald-600 text-white p-3 rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all active:scale-95 flex items-center gap-2"
       >
-        <Plus size={20} /> Add New Product
+        <Plus size={20} />{" "}
+        <span className="hidden sm:inline font-bold">New</span>
       </button>
-    );
-  }
 
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-6">
-        <h2 className="text-2xl font-bold text-center">Add New Product</h2>
+      {/* MODAL using Portal */}
+      {isOpen &&
+        mounted &&
+        createPortal(
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-in fade-in">
+            <div className="bg-white rounded-[2rem] w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl relative animate-in zoom-in-95 ring-8 ring-white/20">
+              <button
+                onClick={() => setIsOpen(false)}
+                className="absolute top-4 right-4 p-2 bg-slate-50 text-slate-400 rounded-full hover:bg-red-50 hover:text-red-500 transition-colors"
+              >
+                <X size={20} />
+              </button>
 
-        {/* ✅ Only ONE form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* Name */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Product Name
-            </label>
-            <input
-              {...register("name")}
-              placeholder="e.g. Lays Classic"
-              className="w-full border rounded-xl px-4 py-3.5"
-            />
-            {errors.name && (
-              <p className="text-red-500 text-sm mt-2">{errors.name.message}</p>
-            )}
-          </div>
+              <div className="p-6">
+                <h2 className="text-2xl font-black text-slate-800 text-center mb-6">
+                  Add Product 📦
+                </h2>
 
-          {/* Category */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Category
-            </label>
-            <select
-              {...register("categoryId")}
-              className="w-full border rounded-xl px-4 py-3.5"
-            >
-              <option value="">Select Category</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
-            {errors.categoryId && (
-              <p className="text-red-500 text-sm mt-2">
-                {errors.categoryId.message}
-              </p>
-            )}
-          </div>
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                  {/* Name */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase ml-2 mb-1">
+                      Name
+                    </label>
+                    <input
+                      {...register("name")}
+                      placeholder="e.g. Lays Classic"
+                      className="w-full bg-emerald-50/30 border border-emerald-100 rounded-xl px-4 py-3 text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-all placeholder:text-slate-300"
+                    />
+                    {errors.name && (
+                      <p className="text-red-500 text-xs mt-1 ml-2 font-bold">
+                        {errors.name.message}
+                      </p>
+                    )}
+                  </div>
 
-          {/* Purchase Price */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Purchase Price (₹)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              {...register("purchasePrice", { valueAsNumber: true })}
-              className="w-full border rounded-xl px-4 py-3.5"
-            />
-            {errors.purchasePrice && (
-              <p className="text-red-500 text-sm mt-2">
-                {errors.purchasePrice.message}
-              </p>
-            )}
-          </div>
+                  {/* Category */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase ml-2 mb-1">
+                      Category
+                    </label>
+                    <select
+                      {...register("categoryId")}
+                      className="w-full bg-emerald-50/30 border border-emerald-100 rounded-xl px-4 py-3 text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-all"
+                    >
+                      <option value="">Select Category</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.categoryId && (
+                      <p className="text-red-500 text-xs mt-1 ml-2 font-bold">
+                        {errors.categoryId.message}
+                      </p>
+                    )}
+                  </div>
 
-          {/* Selling Price */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Selling Price (₹)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              {...register("sellingPrice", { valueAsNumber: true })}
-              className="w-full border rounded-xl px-4 py-3.5"
-            />
-            {errors.sellingPrice && (
-              <p className="text-red-500 text-sm mt-2">
-                {errors.sellingPrice.message}
-              </p>
-            )}
-          </div>
+                  {/* Prices Grid */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-400 uppercase ml-2 mb-1">
+                        Buy Price
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        {...register("purchasePrice", { valueAsNumber: true })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-emerald-500 uppercase ml-2 mb-1">
+                        Sell Price
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        {...register("sellingPrice", { valueAsNumber: true })}
+                        className="w-full bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-emerald-700 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+                  </div>
 
-          {/* Image URL */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Image URL
-            </label>
-            <input
-              type="url"
-              {...register("imageUrl")}
-              placeholder="https://example.com/image.jpg"
-              className="w-full border rounded-xl px-4 py-3.5"
-            />
-            {errors.imageUrl && (
-              <p className="text-red-500 text-sm mt-2">
-                {errors.imageUrl.message}
-              </p>
-            )}
-          </div>
+                  {/* Image URL */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase ml-2 mb-1">
+                      Image URL
+                    </label>
+                    <input
+                      type="url"
+                      {...register("imageUrl")}
+                      placeholder="https://..."
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    />
+                  </div>
 
-          {/* Buttons */}
-          <div className="flex gap-4 pt-4">
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              className="flex-1 border py-3.5 rounded-xl"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 bg-orange-600 text-white py-3.5 rounded-xl"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="animate-spin" size={20} />
-                  Adding...
-                </>
-              ) : (
-                "Add Product"
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+                  {/* Buttons */}
+                  <div className="pt-4 flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setIsOpen(false)}
+                      className="flex-1 py-3.5 rounded-xl font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="flex-1 py-3.5 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-colors flex items-center justify-center gap-2"
+                    >
+                      {loading ? (
+                        <Loader2 className="animate-spin" size={20} />
+                      ) : (
+                        "Save Product"
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+    </>
   );
 }

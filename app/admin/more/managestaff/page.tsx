@@ -1,12 +1,11 @@
-// app/admin/more/managestaff/page.tsx
 import { Suspense } from "react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { db } from "@/db/db";
 import { users } from "@/db/schemas";
-import { and, eq, inArray } from "drizzle-orm";
-
+import { and, eq, inArray, desc } from "drizzle-orm"; // Added desc for ordering
 import StaffList from "./components/StaffList";
+import { Users } from "lucide-react";
 
 export default async function ManageStaffPage() {
   const session = await getServerSession(authOptions);
@@ -15,7 +14,6 @@ export default async function ManageStaffPage() {
     throw new Error("Unauthorized");
   }
 
-  // 🔍 owner agency
   const [owner] = await db
     .select({ agencyId: users.agencyId })
     .from(users)
@@ -26,7 +24,6 @@ export default async function ManageStaffPage() {
     throw new Error("Owner agency not found");
   }
 
-  // 👥 fetch staff (same agency)
   const staff = await db
     .select({
       id: users.id,
@@ -39,17 +36,25 @@ export default async function ManageStaffPage() {
       createdAt: users.createdAt,
     })
     .from(users)
-          .where(
-            and(
-              eq(users.agencyId, owner.agencyId),
-              inArray(users.role, ["salesman", "delivery_boy"])
-            )
-          );
+    .where(
+      and(
+        eq(users.agencyId, owner.agencyId),
+        inArray(users.role, ["salesman", "delivery_boy"])
+      )
+    )
+    .orderBy(desc(users.createdAt)); // Newest first
 
   return (
-    <div className="p-6 space-y-6">
-      <Suspense fallback={<div>Loading staff...</div>}>
-        <StaffList initialStaff={staff} />
+    <div className="min-h-screen bg-emerald-50/60 font-sans pb-24">
+      <Suspense
+        fallback={
+          <div className="flex flex-col items-center justify-center h-[60vh] text-emerald-600">
+            <Users className="animate-bounce mb-2" size={40} />
+            <p className="font-bold">Loading your team...</p>
+          </div>
+        }
+      >
+        <StaffList initialStaff={staff as any} />
       </Suspense>
     </div>
   );

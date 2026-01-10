@@ -8,8 +8,9 @@ import { updateStaffSchema } from "@/lib/zod.schema/update-staff";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await context.params; // ✅ unwrap params
   try {
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== "owner_admin") {
@@ -19,7 +20,7 @@ export async function PATCH(
     const body = await req.json();
     const data = updateStaffSchema.parse({
       ...body,
-      staffId: params.id,
+      staffId: id,
     });
 
     await db
@@ -34,12 +35,7 @@ export async function PATCH(
           isActive: data.isActive,
         }),
       })
-      .where(
-        and(
-          eq(users.id, params.id),
-          eq(users.agencyId, session.user.id)
-        )
-      );
+      .where(and(eq(users.id, id), eq(users.agencyId, session.user.id)));
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
@@ -52,18 +48,17 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await context.params; // ✅ unwrap params
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== "owner_admin") {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
-  console.log(params.id,"papapapapapap");
+  console.log(id, "papapapapapap");
   await db
     .delete(users)
-    .where(
-      and(eq(users.id, params.id), eq(users.agencyId, session.user.id))
-    );
+    .where(and(eq(users.id, id), eq(users.agencyId, session.user.id)));
 
   return NextResponse.json({ success: true });
 }

@@ -22,7 +22,14 @@ export const authOptions: NextAuthOptions = {
 
         // Fetch user from DB
         const [user] = await db
-          .select()
+          .select({
+            id: users.id,
+            email: users.email,
+            name: users.name,
+            passwordHash: users.passwordHash,
+            role: users.role,
+            agencyId: users.agencyId, // ← Yeh line zaroori hai!
+          })
           .from(users)
           .where(eq(users.email, credentials.email.toLowerCase()))
           .limit(1);
@@ -41,7 +48,7 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           name: user.name,
           email: user.email,
-          agencyId:user.agencyId,
+          agencyId: user.agencyId,
           role: user.role as
             | "super_admin"
             | "owner_admin"
@@ -70,7 +77,7 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
         token.email = user.email;
         token.name = user.name;
-        token.agencyId = user.agencyId
+        token.agencyId = user.agencyId;
       }
       return token;
     },

@@ -1,120 +1,156 @@
-// components/shop/AddShop.tsx
 "use client";
 
-import { useState } from "react";
-import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom"; // 🔥 Portal Import
+import { Loader2, Plus, X } from "lucide-react";
 
 interface AddShopProps {
   areaId: string;
-  onSuccess: (newShop: {
-    id: string;
-    name: string;
-    ownerName: string | null;
-    mobile: string | null;
-  }) => void;
+  onSuccess: (shop: any) => void; // Using 'any' to match your flow, strictly type if needed
 }
 
 export default function AddShop({ areaId, onSuccess }: AddShopProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [name, setName] = useState("");
-  const [ownerName, setOwnerName] = useState("");
-  const [mobile, setMobile] = useState("");
+  const [mounted, setMounted] = useState(false); // To handle hydration
 
-  const handleSubmit = async () => {
-    if (!name.trim()) {
-      toast.error("Shop name required");
-      return;
-    }
+  const [formData, setFormData] = useState({
+    name: "",
+    ownerName: "",
+    mobile: "",
+  });
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name.trim()) return;
 
     setLoading(true);
     try {
       const res = await fetch("/api/shops", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          ownerName: ownerName.trim() || null,
-          mobile: mobile.trim() || null,
-          areaId,
-        }),
+        body: JSON.stringify({ ...formData, areaId }),
       });
 
-      if (!res.ok) throw new Error("Failed to add shop");
-
+      if (!res.ok) throw new Error();
       const data = await res.json();
+
       onSuccess(data.shop);
       setIsOpen(false);
-      setName("");
-      setOwnerName("");
-      setMobile("");
-    } catch (err) {
-      toast.error("Failed to add shop");
+      setFormData({ name: "", ownerName: "", mobile: "" });
+    } catch {
+      // Handle error
     } finally {
       setLoading(false);
     }
   };
 
-  if (!isOpen) {
-    return (
-      <button
-        onClick={() => setIsOpen(true)}
-        className="bg-orange-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-orange-700 shadow-lg"
-      >
-        + Add New Shop
-      </button>
-    );
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-6">
-        <h2 className="text-2xl font-bold text-center">Add New Shop</h2>
-
-        <div className="space-y-4">
-          <input
-            placeholder="Shop Name *"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-orange-500"
-          />
-
-          <input
-            placeholder="Owner Name (optional)"
-            value={ownerName}
-            onChange={(e) => setOwnerName(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-orange-500"
-          />
-
-          <input
-            placeholder="Mobile (optional)"
-            value={mobile}
-            onChange={(e) => setMobile(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-orange-500"
-          />
-        </div>
-
-        <div className="flex gap-4">
+  // 🔥 Portal Content
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+      {/* Scrollable Wrapper for Mobile Keyboard safety */}
+      <div className="w-full max-h-[90vh] overflow-y-auto flex justify-center">
+        <div className="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl relative animate-in zoom-in-95 duration-200">
+          {/* Close Button */}
           <button
             onClick={() => setIsOpen(false)}
-            className="flex-1 border border-slate-300 py-3 rounded-xl font-medium hover:bg-slate-50"
+            className="absolute top-4 right-4 p-2 bg-slate-50 text-slate-400 rounded-full hover:bg-red-50 hover:text-red-500 transition-colors"
           >
-            Cancel
+            <X size={20} />
           </button>
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="flex-1 bg-orange-600 text-white py-3 rounded-xl font-bold hover:bg-orange-700 disabled:opacity-70 flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <Loader2 className="animate-spin" size={18} />
-            ) : (
-              "Add Shop"
-            )}
-          </button>
+
+          <h2 className="text-2xl font-black text-slate-800 mb-6 text-center">
+            New Shop 🏪
+          </h2>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="text-xs font-bold text-slate-400 uppercase ml-2">
+                Shop Name
+              </label>
+              <input
+                autoFocus
+                required
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                className="w-full bg-emerald-50/50 border-2 border-emerald-100 rounded-xl px-4 py-3.5 text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 transition-all placeholder:text-slate-300"
+                placeholder="e.g. Gupta General Store"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-bold text-slate-400 uppercase ml-2">
+                  Owner
+                </label>
+                <input
+                  value={formData.ownerName}
+                  onChange={(e) =>
+                    setFormData({ ...formData, ownerName: e.target.value })
+                  }
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 placeholder:text-slate-300"
+                  placeholder="Name"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-400 uppercase ml-2">
+                  Mobile
+                </label>
+                <input
+                  type="tel"
+                  value={formData.mobile}
+                  onChange={(e) =>
+                    setFormData({ ...formData, mobile: e.target.value })
+                  }
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 placeholder:text-slate-300"
+                  placeholder="123..."
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="flex-1 py-3.5 rounded-xl font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 py-3.5 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-colors flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <Loader2 className="animate-spin" size={20} />
+                ) : (
+                  "Save Shop"
+                )}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
+  );
+
+  return (
+    <>
+      <button
+        onClick={() => setIsOpen(true)}
+        className="bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-2xl shadow-lg shadow-emerald-200 transition-all flex-shrink-0 flex items-center justify-center h-full aspect-square"
+      >
+        <Plus size={24} />
+      </button>
+
+      {/* Render Modal via Portal if Open & Mounted */}
+      {isOpen && mounted && createPortal(modalContent, document.body)}
+    </>
   );
 }

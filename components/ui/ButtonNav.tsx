@@ -3,7 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ComponentType } from "react";
-import { Home, Package, BarChart3, MoreHorizontal, LogOut } from "lucide-react";
+// 🔥 1. Import ClipboardList icon
+import {
+  Home,
+  Package,
+  BarChart3,
+  MoreHorizontal,
+  LogOut,
+  ClipboardList,
+} from "lucide-react";
 import { signOut } from "next-auth/react";
 
 const iconMap: Record<
@@ -14,7 +22,8 @@ const iconMap: Record<
   package: Package,
   "bar-chart-3": BarChart3,
   "more-horizontal": MoreHorizontal,
-  logout: LogOut, // Replace with actual logout icon
+  logout: LogOut,
+  orders: ClipboardList, // 🔥 2. Register new icon here
 };
 
 type NavItem = {
@@ -49,50 +58,34 @@ export default function BottomNav({
     <nav
       className={
         containerClassName ??
-        "fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-2 flex justify-around items-center z-40 md:max-w-md md:mx-auto"
+        "fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-emerald-100 p-2 flex justify-around items-center z-40 md:max-w-md md:mx-auto shadow-[0_-4px_20px_-5px_rgba(16,185,129,0.1)]"
       }
     >
       {items.map((item) => {
         const active = isActive(item.href);
         const Icon = iconMap[item.iconName];
 
-        if (!Icon) return null; // Safety: skip if icon not found
-        if (item.iconName === "logout") {
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => signOut()}
-              className={`flex flex-col items-center gap-1 p-2 transition-all ${
-                active
-                  ? "text-orange-600 scale-105"
-                  : "text-slate-400 hover:text-slate-600"
-              }`}
-            >
-              <Icon size={24} strokeWidth={active ? 2.5 : 2} />
-              <span className="text-[10px] font-bold uppercase tracking-wide">
-                {item.label}
-              </span>
-            </Link>
-          );
-        } else {
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex flex-col items-center gap-1 p-2 transition-all ${
-                active
-                  ? "text-orange-600 scale-105"
-                  : "text-slate-400 hover:text-slate-600"
-              }`}
-            >
-              <Icon size={24} strokeWidth={active ? 2.5 : 2} />
-              <span className="text-[10px] font-bold uppercase tracking-wide">
-                {item.label}
-              </span>
-            </Link>
-          );
-        }
+        if (!Icon) return null;
+
+        const isLogout = item.iconName === "logout";
+
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={() => isLogout && signOut()}
+            className={`flex flex-col items-center gap-1 p-2 transition-all duration-300 rounded-xl ${
+              active
+                ? "text-emerald-600 scale-105 bg-emerald-50 font-bold" // 🔥 Green Theme Active
+                : "text-slate-400 hover:text-emerald-500 hover:bg-slate-50"
+            }`}
+          >
+            <Icon size={22} strokeWidth={active ? 2.5 : 2} />
+            <span className="text-[10px] uppercase tracking-wide">
+              {item.label}
+            </span>
+          </Link>
+        );
       })}
     </nav>
   );
