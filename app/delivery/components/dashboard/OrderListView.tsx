@@ -125,7 +125,7 @@ export default function OrderListView({
               </div>
 
               <div
-                className={`border-2 rounded-[2rem] transition-all duration-300 ${
+                className={`border-2 rounded-4xl transition-all duration-300 ${
                   isSelected
                     ? "border-emerald-500 scale-[1.02] bg-emerald-50/30"
                     : "border-transparent"

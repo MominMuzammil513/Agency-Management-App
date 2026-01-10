@@ -20,7 +20,7 @@ export default function StaffCard({ staff, onClick }: StaffCardProps) {
   return (
     <div
       onClick={onClick}
-      className="group bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-emerald-100/40 hover:-translate-y-1 transition-all duration-300 cursor-pointer relative overflow-hidden"
+      className="group bg-white p-5 rounded-4xl border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-emerald-100/40 hover:-translate-y-1 transition-all duration-300 cursor-pointer relative overflow-hidden"
     >
       {/* Decorative Blur */}
       <div className="absolute -top-6 -right-6 w-20 h-20 bg-emerald-50 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>

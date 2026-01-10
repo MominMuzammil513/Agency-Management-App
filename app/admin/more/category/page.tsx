@@ -69,7 +69,7 @@ export default async function CategoriesPage() {
             {categoryList.map((category) => (
               <div
                 key={category.id}
-                className="group bg-white rounded-[2rem] p-6 shadow-sm border border-emerald-50/50 hover:shadow-xl hover:shadow-emerald-100/40 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden"
+                className="group bg-white rounded-4xl p-6 shadow-sm border border-emerald-50/50 hover:shadow-xl hover:shadow-emerald-100/40 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden"
               >
                 {/* Background Decoration */}
                 <div className="absolute -top-6 -right-6 w-24 h-24 bg-emerald-50 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>

@@ -68,7 +68,7 @@ export default async function DeliveryHistoryPage() {
           historyOrders.map((order) => (
             <div
               key={order.id}
-              className="bg-white p-5 rounded-[1.5rem] flex justify-between items-center shadow-sm opacity-80 hover:opacity-100 transition-all border border-slate-100"
+              className="bg-white p-5 rounded-3xl flex justify-between items-center shadow-sm opacity-80 hover:opacity-100 transition-all border border-slate-100"
             >
               <div>
                 <h4 className="font-bold text-slate-800 text-lg leading-tight">

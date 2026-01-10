@@ -73,7 +73,7 @@ export default function StaffFormModal({
   if (!isOpen || !mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-in fade-in">
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-9999 p-4 animate-in fade-in">
       <div className="bg-white rounded-[2.5rem] max-w-md w-full p-8 shadow-2xl relative animate-in zoom-in-95 ring-8 ring-white/20 max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}

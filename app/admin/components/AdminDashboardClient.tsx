@@ -84,7 +84,7 @@ export default function AdminDashboardClient({
       <div className="px-6 space-y-8">
         {/* 📊 Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-[2rem] p-5 text-white shadow-lg shadow-emerald-200 relative overflow-hidden">
+          <div className="bg-linear-to-br from-emerald-500 to-teal-600 rounded-4xl p-5 text-white shadow-lg shadow-emerald-200 relative overflow-hidden">
             <div className="flex items-center gap-3 mb-3 opacity-90">
               <div className="p-2 bg-white/20 rounded-full">
                 <TrendingUp size={18} />
@@ -95,7 +95,7 @@ export default function AdminDashboardClient({
               ₹{stats.todaySales.toLocaleString()}
             </h3>
           </div>
-          <div className="bg-white rounded-[2rem] p-5 border border-slate-100 shadow-sm">
+          <div className="bg-white rounded-4xl p-5 border border-slate-100 shadow-sm">
             <div className="flex items-center gap-3 mb-3 text-slate-500">
               <div className="p-2 bg-orange-50 text-orange-500 rounded-full">
                 <ShoppingBag size={18} />
@@ -106,7 +106,7 @@ export default function AdminDashboardClient({
               {stats.todayOrders}
             </h3>
           </div>
-          <div className="bg-white rounded-[2rem] p-5 border border-slate-100 shadow-sm">
+          <div className="bg-white rounded-4xl p-5 border border-slate-100 shadow-sm">
             <div className="flex items-center gap-3 mb-3 text-slate-500">
               <div className="p-2 bg-blue-50 text-blue-500 rounded-full">
                 <Users size={18} />
@@ -294,7 +294,7 @@ export default function AdminDashboardClient({
 
           <div className="space-y-3">
             {filteredOrders.length === 0 ? (
-              <div className="text-center py-10 opacity-50 bg-white rounded-[2rem] border border-dashed border-slate-200">
+              <div className="text-center py-10 opacity-50 bg-white rounded-4xl border border-dashed border-slate-200">
                 <p className="text-sm font-medium">No orders found 🔍</p>
               </div>
             ) : (
@@ -306,7 +306,7 @@ export default function AdminDashboardClient({
                 return (
                   <div
                     key={order.id}
-                    className="bg-white p-4 rounded-[2rem] shadow-sm border border-slate-50 flex justify-between items-center hover:scale-[1.01] transition-transform"
+                    className="bg-white p-4 rounded-4xl shadow-sm border border-slate-50 flex justify-between items-center hover:scale-[1.01] transition-transform"
                   >
                     <div className="flex items-center gap-4">
                       <div

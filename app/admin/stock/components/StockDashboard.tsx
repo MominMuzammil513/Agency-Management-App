@@ -63,7 +63,7 @@ export default function StockDashboard({
   return (
     <div className="min-h-screen bg-emerald-50/60 font-sans pb-24">
       {/* 🌿 Compact Header Section (Sticky + Blur) */}
-      <div className="bg-white/85 backdrop-blur-md rounded-b-[2rem] shadow-sm px-5 pt-4 pb-4 sticky top-0 z-30 border-b border-emerald-100/50">
+      <div className="bg-white/85 backdrop-blur-md rounded-b-4xl shadow-sm px-5 pt-4 pb-4 sticky top-0 z-30 border-b border-emerald-100/50">
         {/* Top Row: Title & Icon (Compact Gap) */}
         <div className="flex justify-between items-center mb-3">
           <div>
@@ -142,7 +142,7 @@ export default function StockDashboard({
             >
               {/* Category Title (Slimmer) */}
               <div className="flex items-center gap-2 px-1">
-                <div className="h-6 w-1 rounded-full bg-gradient-to-b from-emerald-500 to-teal-400"></div>
+                <div className="h-6 w-1 rounded-full bg-linear-to-b from-emerald-500 to-teal-400"></div>
                 <h2 className="text-lg font-bold text-slate-700 flex-1">
                   {cat.categoryName}
                 </h2>
@@ -161,7 +161,7 @@ export default function StockDashboard({
                     {/* Top Row: Image, Name & Qty */}
                     <div className="flex items-start gap-3 mb-3">
                       {/* 🖼️ Product Image (Slightly Smaller for Compactness) */}
-                      <div className="relative h-16 w-16 flex-shrink-0 rounded-xl overflow-hidden bg-slate-50 border border-slate-100 shadow-sm">
+                      <div className="relative h-16 w-16 shrink-0 rounded-xl overflow-hidden bg-slate-50 border border-slate-100 shadow-sm">
                         {product.imageUrl ? (
                           <img
                             src={product.imageUrl}

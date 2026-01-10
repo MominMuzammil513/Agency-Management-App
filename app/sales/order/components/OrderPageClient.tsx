@@ -160,7 +160,7 @@ export default function OrderPageClient({
   return (
     <div className="min-h-screen bg-emerald-50/60 font-sans pb-32">
       {/* Header */}
-      <div className="bg-white/90 backdrop-blur-md pt-5 pb-3 sticky top-0 z-30 border-b border-emerald-100/50 rounded-b-[2rem] shadow-sm">
+      <div className="bg-white/90 backdrop-blur-md pt-5 pb-3 sticky top-0 z-30 border-b border-emerald-100/50 rounded-b-4xl shadow-sm">
         <div className="px-5 flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <button
@@ -173,7 +173,7 @@ export default function OrderPageClient({
               <p className="text-emerald-600 font-bold text-[10px] tracking-widest uppercase">
                 {isOnline ? "Online 🟢" : "Offline 🔴"}
               </p>
-              <h1 className="text-lg font-black text-slate-800 truncate max-w-[150px]">
+              <h1 className="text-lg font-black text-slate-800 truncate max-w-37.5">
                 {shop.name}
               </h1>
             </div>
@@ -310,7 +310,7 @@ export default function OrderPageClient({
           <button
             onClick={handlePlaceOrder}
             disabled={loading}
-            className={`w-full p-2 rounded-[1.5rem] shadow-2xl flex items-center justify-between pr-6 pl-2 group overflow-hidden relative ${
+            className={`w-full p-2 rounded-3xl shadow-2xl flex items-center justify-between pr-6 pl-2 group overflow-hidden relative ${
               isOnline
                 ? "bg-slate-800 text-white shadow-slate-400/50"
                 : "bg-orange-600 text-white shadow-orange-400/50"

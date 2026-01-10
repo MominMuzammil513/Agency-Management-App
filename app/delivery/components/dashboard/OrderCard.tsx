@@ -22,7 +22,7 @@ export default function OrderCard({
     .join(", ");
 
   return (
-    <div className="group relative bg-white rounded-[2rem] p-5 shadow-sm border border-orange-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden h-full">
+    <div className="group relative bg-white rounded-4xl p-5 shadow-sm border border-orange-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden h-full">
       {/* 🎨 Decoration: Orange Blur */}
       <div className="absolute -top-8 -right-8 w-28 h-28 bg-orange-50 rounded-full blur-2xl opacity-60 pointer-events-none"></div>
 

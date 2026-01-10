@@ -51,10 +51,10 @@ export default function AddShop({ areaId, onSuccess }: AddShopProps) {
 
   // 🔥 Portal Content
   const modalContent = (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-9999 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       {/* Scrollable Wrapper for Mobile Keyboard safety */}
       <div className="w-full max-h-[90vh] overflow-y-auto flex justify-center">
-        <div className="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl relative animate-in zoom-in-95 duration-200">
+        <div className="bg-white w-full max-w-sm rounded-4xl p-6 shadow-2xl relative animate-in zoom-in-95 duration-200">
           {/* Close Button */}
           <button
             onClick={() => setIsOpen(false)}
@@ -144,7 +144,7 @@ export default function AddShop({ areaId, onSuccess }: AddShopProps) {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-2xl shadow-lg shadow-emerald-200 transition-all flex-shrink-0 flex items-center justify-center h-full aspect-square"
+        className="bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-2xl shadow-lg shadow-emerald-200 transition-all shrink-0 flex items-center justify-center h-full aspect-square"
       >
         <Plus size={24} />
       </button>

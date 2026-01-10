@@ -47,9 +47,9 @@ export default function EditShop({ shop, onSuccess }: EditShopProps) {
 
   // 🔥 Portal Content
   const modalContent = (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-9999 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="w-full max-h-[90vh] overflow-y-auto flex justify-center">
-        <div className="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl relative animate-in zoom-in-95 duration-200">
+        <div className="bg-white w-full max-w-sm rounded-4xl p-6 shadow-2xl relative animate-in zoom-in-95 duration-200">
           {/* Close Button */}
           <button
             onClick={() => setIsOpen(false)}

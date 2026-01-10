@@ -42,7 +42,7 @@ export default async function MyOrdersPage() {
   return (
     <div className="min-h-screen bg-emerald-50/60">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-md p-6 sticky top-0 z-30 border-b border-emerald-100 shadow-sm rounded-b-[2rem]">
+      <div className="bg-white/80 backdrop-blur-md p-6 sticky top-0 z-30 border-b border-emerald-100 shadow-sm rounded-b-4xl">
         <h1 className="text-2xl font-black text-slate-800">My Orders 📋</h1>
         <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mt-1">
           History & Status

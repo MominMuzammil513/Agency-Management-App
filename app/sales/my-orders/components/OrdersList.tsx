@@ -178,7 +178,7 @@ export default function OrdersList({ orders }: { orders: Order[] }) {
   return (
     <div className="pb-32">
       {/* 🌸 Cute Search Bar */}
-      <div className="bg-white/80 backdrop-blur-xl sticky top-[80px] z-20 px-6 py-4 shadow-sm border-b border-emerald-50 flex gap-4 items-center">
+      <div className="bg-white/80 backdrop-blur-xl sticky top-20 z-20 px-6 py-4 shadow-sm border-b border-emerald-50 flex gap-4 items-center">
         <div className="relative flex-1 group">
           <div className="absolute inset-0 bg-emerald-100 rounded-full blur opacity-20 group-hover:opacity-40 transition-opacity"></div>
           <Search
@@ -227,14 +227,14 @@ export default function OrdersList({ orders }: { orders: Order[] }) {
               <div
                 key={order.id}
                 onClick={() => toggleSelect(order.id)}
-                className={`group relative rounded-[2rem] p-5 border-2 transition-all duration-300 cursor-pointer overflow-hidden ${
+                className={`group relative rounded-4xl p-5 border-2 transition-all duration-300 cursor-pointer overflow-hidden ${
                   isSelected
                     ? "bg-emerald-50/80 border-emerald-300 shadow-[0_10px_40px_-10px_rgba(16,185,129,0.2)] scale-[1.02]"
                     : "bg-white border-transparent hover:border-emerald-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1"
                 }`}
               >
                 {/* Background Decoration */}
-                <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-emerald-100 to-teal-50 rounded-full blur-2xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                <div className="absolute -top-10 -right-10 w-32 h-32 bg-linear-to-br from-emerald-100 to-teal-50 rounded-full blur-2xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
 
                 {/* Header */}
                 <div className="flex justify-between items-start relative z-10">
@@ -309,7 +309,7 @@ export default function OrdersList({ orders }: { orders: Order[] }) {
                       <p className="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-0.5">
                         Total
                       </p>
-                      <div className="bg-gradient-to-r from-emerald-500 to-teal-500 text-transparent bg-clip-text text-2xl font-black">
+                      <div className="bg-linear-to-r from-emerald-500 to-teal-500 text-transparent bg-clip-text text-2xl font-black">
                         ₹{order.totalAmount}
                       </div>
                     </div>
@@ -360,7 +360,7 @@ export default function OrdersList({ orders }: { orders: Order[] }) {
       {/* 1. View Bill Modal */}
       {viewOrder &&
         createPortal(
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-in fade-in duration-300">
+          <div className="fixed inset-0 z-100 flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-in fade-in duration-300">
             <div className="bg-white w-full max-w-sm max-h-[85vh] overflow-y-auto rounded-[2.5rem] p-6 shadow-2xl relative animate-in zoom-in-95 duration-300 ring-8 ring-white/30">
               <button
                 onClick={() => setViewOrder(null)}
@@ -378,7 +378,7 @@ export default function OrdersList({ orders }: { orders: Order[] }) {
                 </h2>
               </div>
 
-              <div className="bg-gradient-to-br from-slate-50 to-white p-5 rounded-[1.5rem] mb-6 border border-slate-100 shadow-sm relative overflow-hidden">
+              <div className="bg-linear-to-br from-slate-50 to-white p-5 rounded-3xl mb-6 border border-slate-100 shadow-sm relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-50 rounded-bl-full opacity-50"></div>
                 <p className="font-black text-slate-800 text-xl mb-1 relative z-10">
                   {viewOrder.shopName}
@@ -430,7 +430,7 @@ export default function OrdersList({ orders }: { orders: Order[] }) {
                 ))}
               </div>
 
-              <div className="bg-slate-900 p-5 rounded-[1.5rem] flex justify-between items-center shadow-xl shadow-slate-200">
+              <div className="bg-slate-900 p-5 rounded-3xl flex justify-between items-center shadow-xl shadow-slate-200">
                 <span className="text-slate-400 font-bold uppercase text-xs tracking-wider">
                   Grand Total
                 </span>
@@ -446,7 +446,7 @@ export default function OrdersList({ orders }: { orders: Order[] }) {
       {/* 2. Load Sheet Modal */}
       {loadingSummary &&
         createPortal(
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-in fade-in">
+          <div className="fixed inset-0 z-100 flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-in fade-in">
             <div className="bg-white w-full max-w-sm max-h-[85vh] overflow-y-auto rounded-[2.5rem] p-6 shadow-2xl relative animate-in zoom-in-95 ring-8 ring-white/30">
               <button
                 onClick={() => setLoadingSummary(null)}

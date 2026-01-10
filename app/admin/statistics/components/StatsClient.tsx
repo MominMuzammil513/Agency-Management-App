@@ -108,7 +108,7 @@ export default function StatsClient({ data }: StatsProps) {
         {/* 💰 Big Stats Cards */}
         <div className="grid grid-cols-1 gap-4">
           {/* Profit Card */}
-          <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-6 rounded-[2.5rem] text-white shadow-xl shadow-emerald-200 relative overflow-hidden">
+          <div className="bg-linear-to-r from-emerald-600 to-teal-600 p-6 rounded-[2.5rem] text-white shadow-xl shadow-emerald-200 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -mr-10 -mt-10"></div>
             <div className="flex items-center gap-2 mb-2 opacity-90">
               <TrendingUp size={20} />{" "}
@@ -122,7 +122,7 @@ export default function StatsClient({ data }: StatsProps) {
 
           <div className="grid grid-cols-2 gap-4">
             {/* Revenue */}
-            <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-50">
+            <div className="bg-white p-5 rounded-4xl shadow-sm border border-slate-50">
               <div className="text-blue-500 bg-blue-50 w-10 h-10 rounded-full flex items-center justify-center mb-2">
                 <DollarSign size={20} />
               </div>
@@ -135,7 +135,7 @@ export default function StatsClient({ data }: StatsProps) {
             </div>
 
             {/* Inventory Value */}
-            <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-50">
+            <div className="bg-white p-5 rounded-4xl shadow-sm border border-slate-50">
               <div className="text-orange-500 bg-orange-50 w-10 h-10 rounded-full flex items-center justify-center mb-2">
                 <Package size={20} />
               </div>
@@ -191,7 +191,7 @@ export default function StatsClient({ data }: StatsProps) {
         </div>
 
         {/* 📋 Detailed List Area Wise */}
-        <div className="bg-white p-5 rounded-[2rem] shadow-sm">
+        <div className="bg-white p-5 rounded-4xl shadow-sm">
           <h3 className="font-bold text-slate-800 mb-4 text-sm uppercase tracking-wide">
             Breakdown by Area
           </h3>

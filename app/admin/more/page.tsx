@@ -88,7 +88,7 @@ export default function MorePage() {
               <Link
                 key={item.label}
                 href={item.href}
-                className="group flex items-center justify-between bg-white p-4 rounded-[2rem] shadow-sm border border-slate-100 hover:shadow-xl hover:shadow-emerald-100/50 hover:-translate-y-1 transition-all duration-300"
+                className="group flex items-center justify-between bg-white p-4 rounded-4xl shadow-sm border border-slate-100 hover:shadow-xl hover:shadow-emerald-100/50 hover:-translate-y-1 transition-all duration-300"
               >
                 <div className="flex items-center gap-4">
                   <div
@@ -125,7 +125,7 @@ export default function MorePage() {
               return (
                 <div
                   key={idx}
-                  className="flex flex-col items-center justify-center bg-white/60 p-4 rounded-[2rem] border border-transparent grayscale opacity-70 cursor-not-allowed"
+                  className="flex flex-col items-center justify-center bg-white/60 p-4 rounded-4xl border border-transparent grayscale opacity-70 cursor-not-allowed"
                 >
                   <div className="h-10 w-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 mb-2">
                     <Icon size={18} />
@@ -146,7 +146,7 @@ export default function MorePage() {
         <button
         type="submit"
           onClick={() => signOut()}
-          className="w-full bg-red-50 text-red-500 p-4 rounded-[2rem] font-bold flex items-center justify-center gap-3 hover:bg-red-500 hover:text-white transition-all duration-300 active:scale-95 shadow-sm mt-4"
+          className="w-full bg-red-50 text-red-500 p-4 rounded-4xl font-bold flex items-center justify-center gap-3 hover:bg-red-500 hover:text-white transition-all duration-300 active:scale-95 shadow-sm mt-4"
         >
           <LogOut size={20} />
           Logout
