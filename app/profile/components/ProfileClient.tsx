@@ -14,6 +14,7 @@ import {
   Edit2,
   Lock,
   CheckCircle2,
+  Settings,
 } from "lucide-react";
 import { toastManager } from "@/lib/toast-manager";
 import BackButton from "@/components/ui/BackButton";
@@ -196,6 +197,21 @@ export default function ProfileClient({ user }: ProfileClientProps) {
               <p className="text-xs text-slate-400">Update your password</p>
             </div>
           </button>
+
+          {user.role === "owner_admin" && (
+            <button
+              onClick={() => router.push("/admin/more")}
+              className="w-full bg-white rounded-2xl p-4 flex items-center gap-4 shadow-sm border border-slate-100 hover:border-emerald-200 transition-colors group"
+            >
+              <div className="h-10 w-10 bg-emerald-50 rounded-full flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
+                <Settings size={18} className="text-emerald-600" />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="font-bold text-slate-800 text-sm">Admin Panel</p>
+                <p className="text-xs text-slate-400">Manage staff & settings</p>
+              </div>
+            </button>
+          )}
 
           <button
             onClick={handleLogout}
