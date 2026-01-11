@@ -4,8 +4,8 @@ import { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Search, Minus, CheckCircle2, Package } from "lucide-react";
-import { toast } from "sonner";
-import { db } from "@/lib/offline-db";
+import { toastManager } from "@/lib/toast-manager";
+import { apiClient } from "@/lib/api-client";
 import { useOnline } from "@/hooks/use-online";
 
 // ... (Interfaces same as before)
@@ -36,7 +36,6 @@ export default function OrderPageClient({
   const [searchQuery, setSearchQuery] = useState("");
   const [cart, setCart] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
-  const [pendingCount, setPendingCount] = useState(0);
 
   // 🔥 New State to track if we are editing an old order
   const [oldOrderId, setOldOrderId] = useState<string | null>(null);
@@ -65,7 +64,7 @@ export default function OrderPageClient({
           // Agar editId hai toh save karlo, taaki baad mein delete kar sakein
           if (editId) setOldOrderId(editId);
 
-          toast.info("Editing Order: Cart Restored ✏️");
+          toastManager.info("Editing Order: Cart Restored ✏️");
         }
 
         // Cleanup storage
@@ -76,44 +75,6 @@ export default function OrderPageClient({
     }
   }, [shop.id]);
 
-  // ... (Offline Sync Logic & Filters code same rahega) ...
-  useEffect(() => {
-    const checkPending = async () => {
-      const count = await db.pendingOrders.count();
-      setPendingCount(count);
-    };
-    checkPending();
-  }, []);
-
-  useEffect(() => {
-    const syncOrders = async () => {
-      if (isOnline && pendingCount > 0) {
-        const orders = await db.pendingOrders.toArray();
-        let synced = 0;
-        for (const order of orders) {
-          try {
-            const res = await fetch("/api/orders", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                shopId: order.shopId,
-                items: order.items,
-              }),
-            });
-            if (res.ok) {
-              await db.pendingOrders.delete(order.id!);
-              synced++;
-            }
-          } catch (e) {}
-        }
-        if (synced > 0) {
-          toast.success(`${synced} offline orders synced!`);
-          setPendingCount(await db.pendingOrders.count());
-        }
-      }
-    };
-    syncOrders();
-  }, [isOnline, pendingCount]);
 
   const filteredProducts = useMemo(() => {
     const lower = searchQuery.toLowerCase();
@@ -139,7 +100,7 @@ export default function OrderPageClient({
       // Note: Stock validation might act weird during edit if we don't account for already held stock,
       // but typically we want to validate against current AVAILABLE stock.
       if (current >= maxStock) {
-        toast.error("Max stock reached!");
+        toastManager.error("Max stock reached!");
         return prev;
       }
       return { ...prev, [productId]: current + 1 };
@@ -178,47 +139,34 @@ export default function OrderPageClient({
     }));
 
     try {
-      if (isOnline) {
-        // 1. Create New Order
-        const res = await fetch("/api/orders", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ shopId: shop.id, items }),
-        });
+      // 1. Create New Order
+      const result = await apiClient.post("/api/orders", {
+        shopId: shop.id,
+        items,
+      });
 
-        if (!res.ok) throw new Error("Failed");
+      if (!result.success) {
+        throw new Error(result.message || "Failed");
+      }
 
-        // 2. If Editing: Delete Old Order NOW (Success ke baad)
-        if (oldOrderId) {
-          try {
-            await fetch(`/api/orders?id=${oldOrderId}`, { method: "DELETE" });
-            toast.success("Order Updated Successfully! 🔄");
-          } catch (delErr) {
-            console.error("Failed to delete old order", delErr);
-            // Order placed but old one remains - Rare edge case
-          }
-        } else {
-          toast.success("Order Placed! 🎉");
+      // 2. If Editing: Delete Old Order NOW (Success ke baad)
+      if (oldOrderId) {
+        try {
+          await apiClient.delete(`/api/orders?id=${oldOrderId}`);
+          toastManager.success(isOnline ? "Order Updated Successfully! 🔄" : "Order updated offline! Will sync when online 📡");
+        } catch (delErr) {
+          console.error("Failed to delete old order", delErr);
+          // Order placed but old one remains - Rare edge case
         }
       } else {
-        // Offline Mode
-        await db.pendingOrders.add({
-          shopId: shop.id,
-          items,
-          totalAmount: totalPrice,
-          timestamp: Date.now(),
-        });
-        toast.warning("Saved Offline! 📡");
-        setPendingCount((prev) => prev + 1);
-        // Note: We can't easily delete the old order offline yet.
-        // User will have to delete it manually later or sync logic needs upgrade.
+        toastManager.success(isOnline ? "Order Placed! 🎉" : "Order saved offline! Will sync when online 📡");
       }
 
       // 3. Finish
       router.push("/sales/orders"); // Wapas My Orders list par bhejo
       router.refresh();
     } catch (err) {
-      toast.error("Something went wrong");
+      toastManager.error("Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -249,11 +197,6 @@ export default function OrderPageClient({
               </h1>
             </div>
           </div>
-          {pendingCount > 0 && (
-            <div className="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-xs font-bold animate-pulse">
-              {pendingCount} Pending Sync
-            </div>
-          )}
         </div>
 
         {/* Search */}
@@ -372,11 +315,7 @@ export default function OrderPageClient({
           <button
             onClick={handlePlaceOrder}
             disabled={loading}
-            className={`w-full p-2 rounded-3xl shadow-2xl flex items-center justify-between pr-6 pl-2 group overflow-hidden relative ${
-              isOnline
-                ? "bg-slate-800 text-white shadow-slate-400/50"
-                : "bg-orange-600 text-white shadow-orange-400/50"
-            }`}
+            className="w-full p-2 rounded-3xl shadow-2xl flex items-center justify-between pr-6 pl-2 group overflow-hidden relative bg-slate-800 text-white shadow-slate-400/50"
           >
             {loading && (
               <div className="absolute inset-0 bg-black/50 z-10 flex items-center justify-center">
@@ -389,17 +328,17 @@ export default function OrderPageClient({
               </div>
               <div className="flex flex-col items-start">
                 <span className="text-[10px] opacity-80 font-bold uppercase tracking-wider">
-                  {isOnline ? "Total" : "Offline"}
+                  Total
                 </span>
                 <span className="text-lg font-black">₹{totalPrice}</span>
               </div>
             </div>
             <div className="flex items-center gap-2 font-bold group-hover:translate-x-1 transition-transform">
-              {oldOrderId ? "Update Order" : isOnline ? "Place Order" : "Save"}
+              {oldOrderId ? "Update Order" : "Place Order"}
               <CheckCircle2
                 size={22}
                 fill="currentColor"
-                className={isOnline ? "text-emerald-500" : "text-white"}
+                className="text-emerald-500"
               />
             </div>
           </button>

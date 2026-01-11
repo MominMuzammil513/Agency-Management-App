@@ -1,6 +1,6 @@
 "use client";
 
-import { toast } from "sonner";
+import { toastManager } from "@/lib/toast-manager";
 import { Trash2, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -17,10 +17,10 @@ export default function DeleteCategoryButton({ id }: { id: string }) {
       const res = await fetch(`/api/categories/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Delete failed");
 
-      toast.success("Category removed 👋");
+      toastManager.success("Category removed 👋");
       router.refresh();
     } catch (err: any) {
-      toast.error(err.message);
+      toastManager.error(err.message);
     } finally {
       setLoading(false);
     }

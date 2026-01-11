@@ -11,11 +11,17 @@ import {
   areas,
 } from "@/db/schemas";
 // 🔥 FIX: Added 'desc' to imports
-import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
+import { eq, and, sql, desc, gte, lte, or, ne, inArray } from "drizzle-orm";
 import { redirect } from "next/navigation";
+import { unstable_noStore as noStore } from "next/cache";
 import AdminDashboardClient from "./components/AdminDashboardClient";
 
+// Disable caching for real-time updates
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function AdminHomePage() {
+  noStore(); // Ensure fresh data
   // 1. Auth Check
   const session = await getServerSession(authOptions);
 
@@ -54,12 +60,13 @@ export default async function AdminHomePage() {
     .from(users)
     .where(and(eq(users.agencyId, agencyId), eq(users.isActive, true)));
 
-  // --- 🔍 2. SALES GRAPH & TODAY'S STATS ---
+  // --- 🔍 2. SALES GRAPH & TODAY'S STATS (Include all delivered orders) ---
   const rawSalesData = await db
     .select({
       orderId: orders.id,
       createdAt: orders.createdAt,
       price: orderItems.price,
+      status: orders.status,
     })
     .from(orders)
     .innerJoin(shops, eq(orders.shopId, shops.id))
@@ -68,8 +75,8 @@ export default async function AdminHomePage() {
       and(
         eq(shops.agencyId, agencyId),
         gte(orders.createdAt, sevenDaysAgo.toISOString()),
-        // 🔥 Fix: Type assertion for status
-        eq(orders.status as any, "completed")
+        // Include delivered and confirmed orders for sales tracking
+        sql`${orders.status} IN ('delivered', 'confirmed')`
       )
     );
 

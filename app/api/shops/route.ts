@@ -5,7 +5,7 @@ import { db } from "@/db/db";
 import { shops } from "@/db/schemas";
 import { eq } from "drizzle-orm";
 import { authOptions } from "@/lib/authOptions";
-import { emitToRoom } from "@/lib/socket-server";
+import { broadcastShopCreated } from "@/lib/realtime-broadcast";
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
@@ -69,25 +69,9 @@ export async function POST(req: Request) {
       areaId: shops.areaId, // Include areaId for filtering
     });
 
-  // 📡 Emit Socket.io event for real-time update to both area and agency
-  const shopData = newShop[0];
-  const agencyId = session.user.agencyId;
-  
-  console.log("📦 Shop created, emitting Socket.io events:", {
-    shopData,
-    areaId,
-    agencyId,
-    room1: `area:${areaId}`,
-    room2: agencyId ? `agency:${agencyId}` : null,
-  });
-  
-  // Emit to area room for users viewing that area
-  emitToRoom(`area:${areaId}`, "shop:created", shopData);
-  
-  // Also emit to agency room so all agency users see the update
-  if (agencyId) {
-    emitToRoom(`agency:${agencyId}`, "shop:created", shopData);
-  }
+  // Broadcast real-time update
+  const shopData = { ...newShop[0], areaId };
+  await broadcastShopCreated(areaId, shopData);
 
-  return NextResponse.json({ shop: shopData });
+  return NextResponse.json({ shop: newShop[0] });
 }

@@ -6,7 +6,7 @@ import { users } from "@/db/schemas";
 import { eq, and } from "drizzle-orm";
 import { updateStaffSchema } from "@/lib/zod.schema/update-staff";
 import bcrypt from "bcryptjs";
-import { emitToRoom } from "@/lib/socket-server";
+import { broadcastStaffUpdated, broadcastStaffDeleted } from "@/lib/realtime-broadcast";
 
 export async function PATCH(
   req: NextRequest,
@@ -76,12 +76,13 @@ export async function PATCH(
         createdAt: users.createdAt,
       });
 
-    // 📡 Emit Socket.io event for real-time update
-    if (owner.agencyId && updated.length > 0) {
-      emitToRoom(`agency:${owner.agencyId}`, "staff:updated", updated[0]);
+    // Broadcast real-time update
+    if (updated.length > 0) {
+      await broadcastStaffUpdated(owner.agencyId, updated[0]);
+      return NextResponse.json({ success: true, message: "Staff updated", data: updated[0] });
     }
 
-    return NextResponse.json({ success: true, message: "Staff updated" });
+    return NextResponse.json({ success: false, message: "Staff not found" }, { status: 404 });
 
   } catch (error: any) {
     return NextResponse.json(
@@ -122,10 +123,8 @@ export async function DELETE(
       )
     );
 
-  // 📡 Emit Socket.io event for real-time update
-  if (owner.agencyId) {
-    emitToRoom(`agency:${owner.agencyId}`, "staff:deleted", id);
-  }
+  // Broadcast real-time update
+  await broadcastStaffDeleted(owner.agencyId, id);
 
   return NextResponse.json({ success: true, message: "Staff deleted" });
 }

@@ -47,7 +47,7 @@ import { db } from "@/db/db";
 import { products } from "@/db/schemas";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
-import { emitToRoom } from "@/lib/socket-server"; // 👈 Import
+import { broadcastProductCreated } from "@/lib/realtime-broadcast";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -76,8 +76,8 @@ export async function POST(req: NextRequest) {
     })
     .returning();
 
-  // 📡 Emit Socket Event
-  emitToRoom(`agency:${session.user.agencyId}`, "product:created", newProduct);
+  // Broadcast real-time update
+  await broadcastProductCreated(session.user.agencyId, newProduct);
 
   return NextResponse.json({ product: newProduct });
 }

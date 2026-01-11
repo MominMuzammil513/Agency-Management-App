@@ -83,8 +83,8 @@ export default async function StatisticsPage({
         eq(shops.agencyId, agencyId), // 🔥 Fixed: Used safe variable
         gte(orders.createdAt, startDate.toISOString()),
         lte(orders.createdAt, endDate.toISOString()),
-        // 🔥 Fixed: Type assertion for status enum mismatch
-        eq(orders.status, "completed" as any)
+        // Include delivered and confirmed orders for statistics
+        sql`${orders.status} IN ('delivered', 'confirmed')`
       )
     );
 

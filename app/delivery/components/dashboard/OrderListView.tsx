@@ -7,11 +7,12 @@ import {
   Truck,
   Download,
   Loader2,
+  Search,
 } from "lucide-react";
 import OrderCard from "./OrderCard";
 import { Order } from "../types";
 import { useState, Dispatch, SetStateAction } from "react"; // 👈 Import Dispatch & SetStateAction
-import { toast } from "sonner";
+import { toastManager } from "@/lib/toast-manager";
 import { useRouter } from "next/navigation";
 
 interface OrderListProps {
@@ -25,6 +26,8 @@ interface OrderListProps {
   onOpenLoadSheet: () => void;
   onDownloadPDF: () => void;
   loadingAction: string | null;
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
 }
 
 export default function OrderListView({
@@ -37,6 +40,8 @@ export default function OrderListView({
   onOpenLoadSheet,
   onDownloadPDF,
   loadingAction,
+  searchQuery = "",
+  onSearchChange,
 }: OrderListProps) {
   const router = useRouter();
   const [localOrders, setLocalOrders] = useState(orders);
@@ -67,11 +72,11 @@ export default function OrderListView({
         method: "POST",
         body: JSON.stringify({ orderId: id, status: "delivered" }),
       });
-      toast.success("Done! 💰");
+      toastManager.success("Done! 💰");
       router.refresh();
     } catch {
       setLocalOrders(prev);
-      toast.error("Failed");
+      toastManager.error("Failed");
     }
   };
 
@@ -79,7 +84,20 @@ export default function OrderListView({
     <>
       {/* 🌿 Sticky Header */}
       <div className="bg-white/90 backdrop-blur-md sticky top-0 z-30 px-5 pt-5 pb-4 border-b border-orange-100 rounded-b-[2.5rem] shadow-sm">
-        <div className="flex items-center justify-between mb-4">
+        {/* Search Bar */}
+        {onSearchChange && (
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="Search by shop name or mobile..."
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+            />
+          </div>
+        )}
+        <div className="flex items-center justify-between">
           <button
             onClick={onBack}
             className="p-3 bg-slate-50 rounded-full hover:bg-slate-100 text-slate-600 transition-all active:scale-90"

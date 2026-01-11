@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom"; // 🔥 Portal
-import { toast } from "sonner";
+import { toastManager } from "@/lib/toast-manager";
 import { Loader2, Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -47,10 +47,10 @@ export default function AddCategory() {
 
       reset();
       setIsOpen(false);
-      toast.success("Category added successfully ✨");
+      toastManager.success("Category added successfully ✨");
       router.refresh();
     } catch (err: any) {
-      toast.error(err.message);
+      toastManager.error(err.message);
     } finally {
       setLoading(false);
     }

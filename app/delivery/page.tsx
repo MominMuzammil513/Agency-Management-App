@@ -12,8 +12,14 @@ import {
 import { eq, and, desc, sql, ne, inArray } from "drizzle-orm";
 import { PackageX } from "lucide-react";
 import DeliveryDashboard from "./components/DeliveryDashboard";
+import { unstable_noStore as noStore } from "next/cache";
+
+// Disable caching for real-time updates
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function DeliveryHomePage() {
+  noStore(); // Ensure fresh data on every request
   const session = await getServerSession(authOptions);
   if (!session) return null;
 
@@ -56,7 +62,23 @@ export default async function DeliveryHomePage() {
     )
     .orderBy(desc(orders.createdAt));
 
-  // 3. Fetch Items
+  // 3a. Fetch Delivery Stats (Total delivered by this delivery boy)
+  const deliveryStats = await db
+    .select({
+      totalDelivered: sql<number>`count(*)`,
+      totalAmount: sql<number>`sum((SELECT SUM(${orderItems.price}) FROM ${orderItems} WHERE ${orderItems.orderId} = ${orders.id}))`,
+    })
+    .from(orders)
+    .innerJoin(shops, eq(orders.shopId, shops.id))
+    .where(
+      and(
+        eq(shops.agencyId, me.agencyId),
+        eq(orders.status, "delivered")
+      )
+    )
+    .limit(1);
+
+  // 4. Fetch Items
   const orderIds = pendingOrdersRaw.map((o) => o.id);
   let allItems: any[] = [];
 
@@ -73,7 +95,7 @@ export default async function DeliveryHomePage() {
       .where(inArray(orderItems.orderId, orderIds));
   }
 
-  // 4. Combine Data & FIX TYPES
+  // 5. Combine Data & FIX TYPES
   const fullOrders = pendingOrdersRaw.map((order) => ({
     ...order,
     // 🔥 FIX: Agar mobile null hai to empty string bhejo
@@ -83,7 +105,13 @@ export default async function DeliveryHomePage() {
     items: allItems.filter((item) => item.orderId === order.id),
   }));
 
+  // Stats data
+  const stats = {
+    totalDelivered: deliveryStats[0]?.totalDelivered || 0,
+    totalAmount: deliveryStats[0]?.totalAmount || 0,
+  };
+
   // Note: Naye DeliveryDashboard mein 'areas' prop ki zaroorat nahi hai,
   // wo orders se khud unique areas nikal leta hai.
-  return <DeliveryDashboard orders={fullOrders} />;
+  return <DeliveryDashboard orders={fullOrders} stats={stats} />;
 }

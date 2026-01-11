@@ -5,7 +5,7 @@ import { db } from "@/db/db";
 import { shops } from "@/db/schemas";
 import { eq } from "drizzle-orm";
 import { authOptions } from "@/lib/authOptions";
-import { emitToRoom } from "@/lib/socket-server";
+import { broadcastShopUpdated, broadcastShopDeleted } from "@/lib/realtime-broadcast";
 
 export async function PUT(
   req: Request,
@@ -21,7 +21,7 @@ export async function PUT(
   if (!name)
     return NextResponse.json({ message: "Name required" }, { status: 400 });
 
-  // Get existing shop to find areaId and agencyId for socket rooms
+  // Get existing shop to find areaId and agencyId
   const existing = await db
     .select({ areaId: shops.areaId, agencyId: shops.agencyId })
     .from(shops)
@@ -48,14 +48,11 @@ export async function PUT(
       areaId: shops.areaId, // Include areaId for filtering
     });
 
-  // 📡 Emit Socket.io event for real-time update to both rooms
-  const shopData = updated[0];
-  emitToRoom(`area:${existing[0].areaId}`, "shop:updated", shopData);
-  if (existing[0].agencyId) {
-    emitToRoom(`agency:${existing[0].agencyId}`, "shop:updated", shopData);
-  }
+  // Broadcast real-time update
+  const shopData = { ...updated[0], areaId: existing[0].areaId };
+  await broadcastShopUpdated(existing[0].areaId, shopData);
 
-  return NextResponse.json({ shop: shopData });
+  return NextResponse.json({ shop: updated[0] });
 }
 
 export async function DELETE(
@@ -67,7 +64,7 @@ export async function DELETE(
   if (!session?.user)
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-  // Get existing shop to find areaId and agencyId for socket rooms
+  // Get existing shop to find areaId and agencyId
   const existing = await db
     .select({ areaId: shops.areaId, agencyId: shops.agencyId })
     .from(shops)
@@ -80,11 +77,8 @@ export async function DELETE(
 
   await db.delete(shops).where(eq(shops.id, id));
 
-  // 📡 Emit Socket.io event for real-time update to both rooms
-  emitToRoom(`area:${existing[0].areaId}`, "shop:deleted", id);
-  if (existing[0].agencyId) {
-    emitToRoom(`agency:${existing[0].agencyId}`, "shop:deleted", id);
-  }
+  // Broadcast real-time update
+  await broadcastShopDeleted(existing[0].areaId, id);
 
   return NextResponse.json({ success: true });
 }

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Toaster, toast } from "sonner";
+import { Toaster } from "sonner";
+import { toastManager } from "@/lib/toast-manager";
 import { useSession } from "next-auth/react";
-import { useSocket } from "@/lib/socket-client";
+import { useRouter } from "next/navigation";
 import { generatePDF } from "@/lib/generate-pdf";
 import { Order } from "./types";
 import AreaGridView from "./dashboard/AreaGridView";
@@ -11,55 +12,31 @@ import OrderListView from "./dashboard/OrderListView";
 import LoadSheetModal from "./dashboard/LoadSheetModal";
 import ViewBillModal from "./dashboard/ViewBillModal";
 
-export default function DeliveryDashboard({ orders: initialOrders }: { orders: Order[] }) {
+interface DeliveryStats {
+  totalDelivered: number;
+  totalAmount: number;
+}
+
+export default function DeliveryDashboard({ 
+  orders: initialOrders,
+  stats = { totalDelivered: 0, totalAmount: 0 }
+}: { 
+  orders: Order[];
+  stats?: DeliveryStats;
+}) {
   // State
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [view, setView] = useState<"AREAS" | "ORDERS">("AREAS");
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const { data: session } = useSession();
-  const { socket } = useSocket();
+  const router = useRouter();
 
-  // Sync initial data
+  // Sync initial data when props change (from router.refresh())
   useEffect(() => {
     setOrders(initialOrders);
   }, [initialOrders]);
-
-  // 📡 Real-time Socket.io listeners for orders
-  useEffect(() => {
-    if (!socket || !session?.user?.agencyId) return;
-
-    const agencyId = session.user.agencyId;
-    socket.emit("join-room", `agency:${agencyId}`);
-
-    // Listen for new orders
-    socket.on("order:created", (orderData: any) => {
-      // Refresh orders list - in production, you'd want to fetch updated list
-      // For now, we'll trigger a refetch or use a refresh event
-    });
-
-    // Listen for order status updates
-    socket.on("order:status-updated", (data: { orderId: string; status: string }) => {
-      setOrders((prev) =>
-        prev.map((o) =>
-          o.id === data.orderId ? { ...o, status: data.status as any } : o
-        )
-      );
-      
-      // Remove delivered orders from list
-      if (data.status === "delivered" || data.status === "cancelled") {
-        setOrders((prev) => prev.filter((o) => o.id !== data.orderId));
-      }
-    });
-
-    return () => {
-      socket.off("order:created");
-      socket.off("order:status-updated");
-      if (session?.user?.agencyId) {
-        socket.emit("leave-room", `agency:${session.user.agencyId}`);
-      }
-    };
-  }, [socket, session?.user?.agencyId]);
 
   // Modals
   const [viewOrder, setViewOrder] = useState<Order | null>(null);
@@ -78,11 +55,17 @@ export default function DeliveryDashboard({ orders: initialOrders }: { orders: O
     return stats;
   }, [orders]);
 
-  // --- 2. Filter Orders for Screen 2 ---
+  // --- 2. Filter Orders for Screen 2 (with search) ---
   const currentAreaOrders = useMemo(() => {
     if (!selectedArea) return [];
-    return orders.filter((o) => (o.areaName || "Unknown") === selectedArea);
-  }, [orders, selectedArea]);
+    const areaFiltered = orders.filter((o) => (o.areaName || "Unknown") === selectedArea);
+    if (!searchQuery.trim()) return areaFiltered;
+    const query = searchQuery.toLowerCase();
+    return areaFiltered.filter((o) =>
+      o.shopName.toLowerCase().includes(query) ||
+      (o.shopMobile && o.shopMobile.includes(query))
+    );
+  }, [orders, selectedArea, searchQuery]);
 
   // --- 3. Load Sheet Logic (Based on Selection) ---
   const loadSummary = useMemo(() => {
@@ -126,9 +109,9 @@ export default function DeliveryDashboard({ orders: initialOrders }: { orders: O
         areaName: o.areaName || "",
       }));
       generatePDF(safeOrders, `Load_${selectedArea}`);
-      toast.success("PDF Downloaded! 📄");
+      toastManager.success("PDF Downloaded! 📄");
     } catch {
-      toast.error("PDF Failed");
+      toastManager.error("PDF Failed");
     } finally {
       setLoadingAction(null);
     }
@@ -142,6 +125,7 @@ export default function DeliveryDashboard({ orders: initialOrders }: { orders: O
           areaStats={areaStats}
           totalPending={orders.length}
           onSelectArea={handleAreaSelect}
+          deliveryStats={stats}
         />
       )}
 
@@ -157,6 +141,8 @@ export default function DeliveryDashboard({ orders: initialOrders }: { orders: O
           onOpenLoadSheet={() => setShowLoadSheet(true)}
           onDownloadPDF={handlePDF}
           loadingAction={loadingAction}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
         />
       )}
 

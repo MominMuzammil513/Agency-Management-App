@@ -12,7 +12,7 @@ import {
 import { eq, inArray, sql } from "drizzle-orm";
 import { authOptions } from "@/lib/authOptions";
 import { z } from "zod";
-import { emitToRoom, emitToAll } from "@/lib/socket-server";
+import { broadcastOrderCreated, broadcastStockUpdated, broadcastOrderDeleted } from "@/lib/realtime-broadcast";
 
 // Validation Schema
 const orderSchema = z.object({
@@ -112,16 +112,16 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 📡 Emit Socket.io event for real-time order update
-    emitToRoom(`agency:${session.user.agencyId}`, "order:created", {
+    // Broadcast real-time updates
+    await broadcastOrderCreated(session.user.agencyId, {
       orderId,
       shopId,
       status: "pending",
       agencyId: session.user.agencyId,
     });
 
-    // Also emit to stock room for real-time stock updates
-    emitToRoom(`agency:${session.user.agencyId}`, "stock:updated", {
+    // Broadcast stock updates
+    await broadcastStockUpdated(session.user.agencyId, {
       products: items.map(item => ({ productId: item.productId, quantity: item.quantity })),
     });
 
@@ -184,7 +184,7 @@ export async function DELETE(req: NextRequest) {
       }
     }
 
-    // Get order details before deletion for socket event
+    // Get order details before deletion
     const orderToDelete = await db
       .select({ agencyId: orders.agencyId, shopId: orders.shopId })
       .from(orders)
@@ -195,13 +195,11 @@ export async function DELETE(req: NextRequest) {
     await db.delete(orderItems).where(eq(orderItems.orderId, orderId));
     await db.delete(orders).where(eq(orders.id, orderId));
 
-    // 📡 Emit Socket.io event for real-time order deletion
+    // Broadcast real-time updates
     if (orderToDelete.length > 0) {
       const order = orderToDelete[0];
-      emitToRoom(`agency:${order.agencyId}`, "order:deleted", orderId);
-      
-      // Emit stock restore update
-      emitToRoom(`agency:${order.agencyId}`, "stock:updated", {
+      await broadcastOrderDeleted(order.agencyId, orderId);
+      await broadcastStockUpdated(order.agencyId, {
         orderId,
         action: "restored",
       });

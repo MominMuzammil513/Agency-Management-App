@@ -86,7 +86,7 @@ import { categories } from "@/db/schemas";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { eq, and } from "drizzle-orm";
-import { emitToRoom } from "@/lib/socket-server"; // 👈 Import
+import { broadcastCategoryUpdated, broadcastCategoryDeleted } from "@/lib/realtime-broadcast";
 
 export async function PUT(
   req: NextRequest,
@@ -115,8 +115,8 @@ export async function PUT(
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
 
-  // 📡 Emit Socket Event
-  emitToRoom(`agency:${session.user.agencyId}`, "category:updated", updated[0]);
+  // Broadcast real-time update
+  await broadcastCategoryUpdated(session.user.agencyId, updated[0]);
 
   return NextResponse.json({ category: updated[0] });
 }
@@ -141,8 +141,8 @@ export async function DELETE(
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
 
-  // 📡 Emit Socket Event
-  emitToRoom(`agency:${session.user.agencyId}`, "category:deleted", id);
+  // Broadcast real-time update
+  await broadcastCategoryDeleted(session.user.agencyId, id);
 
   return NextResponse.json({ success: true });
 }

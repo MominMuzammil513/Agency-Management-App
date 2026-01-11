@@ -154,7 +154,7 @@ import { eq } from "drizzle-orm";
 import { createStaffSchema } from "@/lib/zod.schema/create-staff";
 import { generateId } from "@/lib/generateId"; // ID generator helper
 import bcrypt from "bcryptjs";
-import { emitToRoom } from "@/lib/socket-server";
+import { broadcastStaffCreated } from "@/lib/realtime-broadcast";
 
 export async function POST(req: NextRequest) {
   try {
@@ -219,14 +219,13 @@ export async function POST(req: NextRequest) {
       createdAt: users.createdAt,
     });
 
-    // 📡 Emit Socket.io event for real-time update
-    if (owner.agencyId) {
-      emitToRoom(`agency:${owner.agencyId}`, "staff:created", newStaff[0]);
-    }
+    // Broadcast real-time update
+    await broadcastStaffCreated(owner.agencyId, newStaff[0]);
 
     return NextResponse.json({ 
       success: true, 
-      message: "Staff member created successfully 🎉" 
+      message: "Staff member created successfully 🎉",
+      data: newStaff[0]
     }, { status: 201 });
 
   } catch (error: any) {

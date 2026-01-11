@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { toastManager } from "@/lib/toast-manager";
 import { Loader2, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -15,10 +15,10 @@ export default function DeleteProductButton({ id }: { id: string }) {
     try {
       const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed");
-      toast.success("Product deleted 👋");
+      toastManager.success("Product deleted 👋");
       router.refresh();
     } catch (err: any) {
-      toast.error(err.message);
+      toastManager.error(err.message);
     } finally {
       setLoading(false);
     }

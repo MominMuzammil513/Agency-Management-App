@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom"; // 🔥 Portal Import
 import { Loader2, Plus, X } from "lucide-react";
-import { toast } from "sonner";
+import { toastManager } from "@/lib/toast-manager";
 
 interface AddShopProps {
   areaId: string;
@@ -51,13 +51,13 @@ export default function AddShop({ areaId, onSuccess }: AddShopProps) {
         areaId: areaId, // Ensure areaId is set
       };
       
-      toast.success("Shop added successfully! 🏪");
+      toastManager.success("Shop added successfully! 🏪");
       onSuccess(shopData); // Pass shop with areaId
       setIsOpen(false);
       setFormData({ name: "", ownerName: "", mobile: "" });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not add shop";
-      toast.error(message);
+      toastManager.error(message);
     } finally {
       setLoading(false);
     }

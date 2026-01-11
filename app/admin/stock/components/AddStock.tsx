@@ -4,7 +4,8 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
-import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { toastManager } from "@/lib/toast-manager";
 import { Loader2, Plus } from "lucide-react";
 import {
   addStockFormSchema,
@@ -17,6 +18,7 @@ interface AddStockProps {
 }
 
 export default function AddStock({ productId, categoryId }: AddStockProps) {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -56,13 +58,13 @@ export default function AddStock({ productId, categoryId }: AddStockProps) {
         throw new Error(result.message || "Failed to add stock");
       }
 
-      toast.success(`Added ${data.quantity} units successfully!`);
+      toastManager.success(`Added ${data.quantity} units successfully!`);
       reset();
       setIsOpen(false);
-      window.location.reload();
+      router.refresh();
     } catch (err: any) {
       console.error(err);
-      toast.error(err.message || "Something went wrong");
+      toastManager.error(err.message || "Something went wrong");
     } finally {
       setLoading(false);
     }

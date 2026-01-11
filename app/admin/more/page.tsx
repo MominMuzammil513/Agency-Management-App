@@ -29,6 +29,14 @@ export default function MorePage() {
       active: true,
     },
     {
+      href: "/admin/more/managestaff/earnings",
+      label: "Staff Earnings",
+      sub: "Performance Tracking",
+      icon: BarChart3,
+      color: "bg-orange-100 text-orange-600",
+      active: true,
+    },
+    {
       href: "/admin/more/category",
       label: "Categories",
       sub: "Organize Items",

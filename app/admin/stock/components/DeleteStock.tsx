@@ -2,7 +2,8 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { toastManager } from "@/lib/toast-manager";
 import { Loader2, Trash2 } from "lucide-react";
 
 interface DeleteStockProps {
@@ -10,6 +11,7 @@ interface DeleteStockProps {
 }
 
 export default function DeleteStock({ productId }: DeleteStockProps) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   const handleDelete = async () => {
@@ -29,10 +31,10 @@ export default function DeleteStock({ productId }: DeleteStockProps) {
       const result = await res.json();
       if (!res.ok) throw new Error(result.message || "Failed to delete");
 
-      toast.success("Stock deleted successfully");
-      window.location.reload();
+      toastManager.success("Stock deleted successfully");
+      router.refresh();
     } catch (err: any) {
-      toast.error(err.message);
+      toastManager.error(err.message);
     } finally {
       setLoading(false);
     }

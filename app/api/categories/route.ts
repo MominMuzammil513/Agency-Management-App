@@ -67,7 +67,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { eq } from "drizzle-orm";
 import { generateId } from "@/lib/generateId";
-import { emitToRoom } from "@/lib/socket-server"; // 👈 Import
+import { broadcastCategoryCreated } from "@/lib/realtime-broadcast";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -109,8 +109,8 @@ export async function POST(req: NextRequest) {
 
   const newCategory = { id, name };
 
-  // 📡 Emit Socket Event
-  emitToRoom(`agency:${session.user.agencyId}`, "category:created", newCategory);
+  // Broadcast real-time update
+  await broadcastCategoryCreated(session.user.agencyId, newCategory);
 
   return NextResponse.json({ category: newCategory });
 }

@@ -19,7 +19,7 @@ import {
   HeartHandshake,
 } from "lucide-react";
 import { generatePDF } from "@/lib/generate-pdf";
-import { toast } from "sonner";
+import { toastManager } from "@/lib/toast-manager";
 
 // --- Types ---
 interface Order {
@@ -98,7 +98,7 @@ export default function OrdersList({ orders }: { orders: Order[] }) {
       const items = await fetchDetails([order.id]);
       setViewOrder({ ...order, items });
     } catch {
-      toast.error("Oops! Bill load nahi hua 💔");
+      toastManager.error("Oops! Bill load nahi hua 💔");
     } finally {
       setLoadingAction(false);
     }
@@ -119,7 +119,7 @@ export default function OrdersList({ orders }: { orders: Order[] }) {
 
       setLoadingSummary(summary);
     } catch {
-      toast.error("Calculation failed 🥺");
+      toastManager.error("Calculation failed 🥺");
     } finally {
       setLoadingAction(false);
     }
@@ -147,9 +147,9 @@ export default function OrdersList({ orders }: { orders: Order[] }) {
           ? `Order_${fullData[0].shopName}`
           : "Loading_Sheet"
       );
-      toast.success("Bill Downloaded! 💖");
+      toastManager.success("Bill Downloaded! 💖");
     } catch {
-      toast.error("Download failed 😢");
+      toastManager.error("Download failed 😢");
     } finally {
       setLoadingAction(false);
     }
@@ -166,10 +166,10 @@ export default function OrdersList({ orders }: { orders: Order[] }) {
       });
       if (!res.ok) throw new Error("Failed");
 
-      toast.success("Order removed cleanly ✨");
+      toastManager.success("Order removed cleanly ✨");
       router.refresh();
     } catch {
-      toast.error("Could not delete");
+      toastManager.error("Could not delete");
     } finally {
       setLoadingAction(false);
     }
@@ -217,35 +217,13 @@ export default function OrdersList({ orders }: { orders: Order[] }) {
             </p>
           </div>
         ) : (
-          filteredOrders.map((order) => {
-            const dateObj = order.createdAt
-              ? new Date(order.createdAt)
-              : new Date();
-            const isSelected = selectedOrders.includes(order.id);
-            if(order.status === "cancelled") {
-              return (
-                <div key={order.id} className="text-center py-20 opacity-60">
-                  <div className="bg-emerald-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
-                    <HeartHandshake size={48} className="text-emerald-300" />
-                  </div>
-                  <p className="text-slate-400 font-medium">
-                    Order cancelled 😢
-                  </p>
-                </div>
-              );
-            }
-            if(order.status === "delivered") {
-              return (
-                <div key={order.id} className="text-center py-20 opacity-60">
-                  <div className="bg-emerald-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
-                    <HeartHandshake size={48} className="text-emerald-300" />
-                  </div>
-                  <p className="text-slate-400 font-medium">
-                    Order delivered 😢
-                  </p>
-                </div>
-              );
-            }
+          filteredOrders
+            .filter((order) => order.status !== "cancelled" && order.status !== "delivered") // Filter out cancelled and delivered
+            .map((order) => {
+              const dateObj = order.createdAt
+                ? new Date(order.createdAt)
+                : new Date();
+              const isSelected = selectedOrders.includes(order.id);
             return (
               <div
                 key={order.id}

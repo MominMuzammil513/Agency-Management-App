@@ -3,7 +3,8 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
-import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { toastManager } from "@/lib/toast-manager";
 import { Loader2, Edit } from "lucide-react";
 import {
   updateStockFormSchema,
@@ -19,6 +20,7 @@ export default function UpdateStock({
   productId,
   currentQuantity,
 }: UpdateStockProps) {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -56,11 +58,11 @@ export default function UpdateStock({
       const result = await res.json();
       if (!res.ok) throw new Error(result.message || "Failed to update stock");
 
-      toast.success("Stock updated successfully");
+      toastManager.success("Stock updated successfully");
       setIsOpen(false);
-      window.location.reload();
+      router.refresh();
     } catch (err: any) {
-      toast.error(err.message);
+      toastManager.error(err.message);
     } finally {
       setLoading(false);
     }

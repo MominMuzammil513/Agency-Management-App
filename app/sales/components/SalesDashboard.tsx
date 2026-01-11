@@ -3,9 +3,8 @@
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { Search, MapPin, ChevronRight, LayoutGrid, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { toastManager } from "@/lib/toast-manager";
 import { useSession } from "next-auth/react";
-import { useSocket } from "@/lib/socket-client";
 import AddArea from "./AddArea";
 import EditArea from "./EditArea";
 
@@ -30,55 +29,8 @@ export default function SalesDashboard({ user, areaList = [] }: SalesDashboardPr
   const [searchQuery, setSearchQuery] = useState("");
   const [areas, setAreas] = useState<Area[]>(areaList);
   const { data: session } = useSession();
-  const { socket, isConnected } = useSocket();
 
-  // 📡 Real-time Socket.io listeners
-  useEffect(() => {
-    if (!socket || !session?.user?.agencyId) return;
-
-    // Join agency room for real-time updates
-    const agencyId = session.user.agencyId;
-    socket.emit("join-room", `agency:${agencyId}`);
-
-    // Listen for area updates
-    socket.on("area:created", (newArea: Area) => {
-      setAreas((prev) => {
-        // Avoid duplicates
-        if (prev.find(a => a.id === newArea.id)) return prev;
-        toast.success("New area added! 🌱");
-        return [...prev, newArea];
-      });
-    });
-
-    socket.on("area:updated", (updatedArea: Area) => {
-      setAreas((prev) =>
-        prev.map((a) => (a.id === updatedArea.id ? updatedArea : a))
-      );
-      toast.success("Area updated ✏️");
-    });
-
-    socket.on("area:deleted", (deletedId: string) => {
-      setAreas((prev) => prev.filter((a) => a.id !== deletedId));
-      toast.success("Area deleted");
-    });
-
-    // Listen for full area list refresh
-    socket.on("areas:refresh", (newAreas: Area[]) => {
-      setAreas(newAreas);
-    });
-
-    return () => {
-      socket.off("area:created");
-      socket.off("area:updated");
-      socket.off("area:deleted");
-      socket.off("areas:refresh");
-      if (session?.user?.agencyId) {
-        socket.emit("leave-room", `agency:${session.user.agencyId}`);
-      }
-    };
-  }, [socket, session?.user?.agencyId]);
-
-  // Only sync initial data when component mounts - Socket.io handles all updates
+  // Sync initial data
   useEffect(() => {
     setAreas(areaList);
   }, [areaList]);
@@ -91,17 +43,17 @@ export default function SalesDashboard({ user, areaList = [] }: SalesDashboardPr
     );
   }, [searchQuery, areas]);
 
-  // Delete Logic - Socket.io will handle real-time updates
+  // Delete Logic
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this area permanently?")) return;
 
     try {
       const res = await fetch(`/api/areas?id=${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed");
-      toast.success("Area deleted");
-      // Socket.io event will automatically update the UI
+      toastManager.success("Area deleted");
+      setAreas((prev) => prev.filter((a) => a.id !== id));
     } catch {
-      toast.error("Could not delete area");
+      toastManager.error("Could not delete area");
     }
   };
 
@@ -150,8 +102,16 @@ export default function SalesDashboard({ user, areaList = [] }: SalesDashboardPr
               className="w-full pl-3 pr-4 py-2.5 bg-transparent text-slate-700 placeholder:text-slate-400 focus:outline-none font-medium"
             />
           </div>
-          {/* Add Button - Socket.io will handle real-time updates */}
-          <AddArea onSuccess={() => {}} />
+          {/* Add Button */}
+          <AddArea onSuccess={(area) => {
+            if (area && area.id) {
+              setAreas((prev) => {
+                if (prev.find(a => a.id === area.id)) return prev;
+                toastManager.success("New area added! 🌱");
+                return [...prev, area];
+              });
+            }
+          }} />
         </div>
 
         {/* Title */}
@@ -200,7 +160,14 @@ export default function SalesDashboard({ user, areaList = [] }: SalesDashboardPr
                 <div className="flex items-center gap-2 pl-3 border-l border-slate-100 ml-2">
                   <EditArea 
                     area={area} 
-                    onSuccess={() => {}} // Socket.io will handle real-time updates
+                    onSuccess={(updatedArea) => {
+                      if (updatedArea && updatedArea.id) {
+                        setAreas((prev) =>
+                          prev.map((a) => (a.id === updatedArea.id ? updatedArea : a))
+                        );
+                        toastManager.success("Area updated ✏️");
+                      }
+                    }}
                   />
 
                   <button

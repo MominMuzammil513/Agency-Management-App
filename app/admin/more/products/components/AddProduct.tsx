@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom"; // 🔥 Portal added
-import { toast } from "sonner";
+import { toastManager } from "@/lib/toast-manager";
 import { Loader2, Plus, X } from "lucide-react";
 import { productSchema, ProductFormData } from "@/lib/zod.schema/products";
 import { useRouter } from "next/navigation";
@@ -60,12 +60,12 @@ export default function AddProduct({ categories }: AddProductProps) {
         throw new Error(err.message || "Failed");
       }
 
-      toast.success("Product added! 🎉");
+      toastManager.success("Product added! 🎉");
       reset();
       setIsOpen(false);
       router.refresh();
     } catch (err: any) {
-      toast.error(err.message);
+      toastManager.error(err.message);
     } finally {
       setLoading(false);
     }

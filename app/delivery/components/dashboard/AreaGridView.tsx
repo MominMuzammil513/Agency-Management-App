@@ -6,12 +6,14 @@ interface AreaGridProps {
   areaStats: Record<string, { count: number; amount: number }>;
   totalPending: number;
   onSelectArea: (area: string) => void;
+  deliveryStats?: { totalDelivered: number; totalAmount: number };
 }
 
 export default function AreaGridView({
   areaStats,
   totalPending,
   onSelectArea,
+  deliveryStats,
 }: AreaGridProps) {
   const areas = Object.keys(areaStats);
 
@@ -26,6 +28,22 @@ export default function AreaGridView({
           {totalPending} Orders waiting
         </p>
       </div>
+
+      {/* Delivery Stats Cards */}
+      {deliveryStats && deliveryStats.totalDelivered > 0 && (
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-orange-50">
+            <p className="text-xs text-slate-400 font-bold uppercase mb-1">Delivered</p>
+            <p className="text-2xl font-black text-emerald-600">{deliveryStats.totalDelivered}</p>
+            <p className="text-[10px] text-slate-400 mt-1">Total Orders</p>
+          </div>
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-orange-50">
+            <p className="text-xs text-slate-400 font-bold uppercase mb-1">Earnings</p>
+            <p className="text-2xl font-black text-emerald-600">₹{deliveryStats.totalAmount}</p>
+            <p className="text-[10px] text-slate-400 mt-1">Total Amount</p>
+          </div>
+        </div>
+      )}
 
       {/* Grid */}
       <div className="grid grid-cols-1 gap-4">

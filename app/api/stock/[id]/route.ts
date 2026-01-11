@@ -53,7 +53,6 @@ import { db } from "@/db/db";
 import { stock } from "@/db/schemas";
 import { eq, and } from "drizzle-orm";
 import { authOptions } from "@/lib/authOptions";
-import { emitToRoom } from "@/lib/socket-server"; // 👈 Import
 
 export async function DELETE(
   req: NextRequest,
@@ -78,13 +77,6 @@ export async function DELETE(
     }
 
     await db.delete(stock).where(eq(stock.id, stockEntry[0].id));
-
-    // Emit Socket (Stock Reset to 0)
-    emitToRoom(`agency:${session.user.agencyId}`, "stock:updated", {
-        productId: id,
-        quantity: 0,
-        action: "deleted"
-    });
 
     return NextResponse.json({ success: true, message: "Stock deleted" });
   } catch (error: any) {

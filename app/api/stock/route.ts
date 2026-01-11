@@ -241,7 +241,7 @@ import { stock, stockMovements, products, categories } from "@/db/schemas";
 import { eq, sql, and } from "drizzle-orm";
 import { authOptions } from "@/lib/authOptions";
 import { addStockApiSchema, updateStockApiSchema } from "@/lib/zod.schema/stock.schema";
-import { emitToRoom } from "@/lib/socket-server"; // 👈 Import
+import { broadcastStockUpdated } from "@/lib/realtime-broadcast";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -319,16 +319,15 @@ export async function POST(req: NextRequest) {
         .set({ quantity: sql`${stock.quantity} + ${quantity}` })
         .where(eq(stock.id, existingStock[0].id));
       
-      // Update final qty for socket
       const updated = await db.select({quantity: stock.quantity}).from(stock).where(eq(stock.id, existingStock[0].id));
       finalQuantity = updated[0]?.quantity || 0;
     }
 
-    // Emit Socket (Stock Updated)
-    emitToRoom(`agency:${session.user.agencyId}`, "stock:updated", {
-        productId,
-        quantity: finalQuantity, // Send new total
-        action: "added"
+    // Broadcast real-time update
+    await broadcastStockUpdated(session.user.agencyId, {
+      productId,
+      quantity: finalQuantity,
+      action: "added",
     });
 
     return NextResponse.json({ success: true, message: "Stock added" });
@@ -366,11 +365,11 @@ export async function PUT(req: NextRequest) {
 
     await db.update(stock).set({ quantity: newQuantity }).where(eq(stock.id, stockEntry[0].id));
 
-    // Emit Socket
-    emitToRoom(`agency:${session.user.agencyId}`, "stock:updated", {
-        productId,
-        quantity: newQuantity,
-        action: type
+    // Broadcast real-time update
+    await broadcastStockUpdated(session.user.agencyId, {
+      productId,
+      quantity: newQuantity,
+      action: type,
     });
 
     return NextResponse.json({ success: true, message: "Stock updated" });

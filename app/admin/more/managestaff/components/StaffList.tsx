@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { toastManager } from "@/lib/toast-manager";
 import { Plus, Users } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { useSocket } from "@/lib/socket-client";
 import StaffCard from "./StaffCard";
 import StaffFormModal from "./StaffFormModal";
 import DeleteConfirmModal from "./DeleteConfirmModal";
@@ -21,7 +20,6 @@ interface StaffListProps {
 export default function StaffList({ initialStaff }: StaffListProps) {
   const router = useRouter();
   const { data: session } = useSession();
-  const { socket, isConnected } = useSocket();
 
   // Local state for UI
   const [staffList, setStaffList] = useState<Staff[]>(initialStaff);
@@ -36,79 +34,6 @@ export default function StaffList({ initialStaff }: StaffListProps) {
   useEffect(() => {
     setStaffList(initialStaff);
   }, [initialStaff]);
-
-  // 📡 Real-time Socket.io Listeners
-  useEffect(() => {
-    if (!socket || !isConnected || !session?.user) return;
-
-    // Agency ID check (Session se ya User object se)
-    const agencyId = (session.user as any).agencyId; 
-    if (!agencyId) return;
-
-    // Join Room
-    socket.emit("join-room", `agency:${agencyId}`);
-
-    // 1. Staff Created
-    const handleCreated = (newStaff: Staff) => {
-      setStaffList((prev) => [newStaff, ...prev]);
-      toast.success(`New member joined: ${newStaff.name} 🎉`);
-    };
-
-    // 2. Staff Updated (Details)
-    const handleUpdated = (updatedStaff: Staff) => {
-      setStaffList((prev) =>
-        prev.map((s) => (s.id === updatedStaff.id ? updatedStaff : s))
-      );
-      
-      // 🔥 Fix: Agar Modal khula hai, toh usse bhi update karo
-      if (selectedStaff?.id === updatedStaff.id) {
-        setSelectedStaff(updatedStaff);
-      }
-    };
-
-    // 3. Staff Deleted
-    const handleDeleted = (deletedId: string) => {
-      setStaffList((prev) => prev.filter((s) => s.id !== deletedId));
-      
-      // Agar deleted banda selected tha, toh modal band karo
-      if (selectedStaff?.id === deletedId) {
-        setSelectedStaff(null);
-        setEditingStaff(null);
-        setDeleteId(null);
-        toast.error("This staff member was removed.");
-      }
-    };
-
-    // 4. Status Updated (Active/Inactive)
-    const handleStatusUpdated = (data: { id: string; isActive: boolean }) => {
-      setStaffList((prev) =>
-        prev.map((s) => {
-          if (s.id === data.id) {
-             const updated = { ...s, isActive: data.isActive };
-             // 🔥 Fix: Modal Update Live
-             if (selectedStaff?.id === data.id) {
-                setSelectedStaff(updated);
-             }
-             return updated;
-          }
-          return s;
-        })
-      );
-    };
-
-    socket.on("staff:created", handleCreated);
-    socket.on("staff:updated", handleUpdated);
-    socket.on("staff:deleted", handleDeleted);
-    socket.on("staff:status-updated", handleStatusUpdated);
-
-    return () => {
-      socket.off("staff:created", handleCreated);
-      socket.off("staff:updated", handleUpdated);
-      socket.off("staff:deleted", handleDeleted);
-      socket.off("staff:status-updated", handleStatusUpdated);
-      socket.emit("leave-room", `agency:${agencyId}`);
-    };
-  }, [socket, isConnected, session, selectedStaff]); // selectedStaff dependency zaroori hai
 
   // 🔹 Create / Update staff
   const onFormSubmit = async (data: StaffFormData) => {
@@ -125,21 +50,31 @@ export default function StaffList({ initialStaff }: StaffListProps) {
       const result = await res.json();
       if (!res.ok) throw new Error(result.message || "Action failed");
 
-      toast.success(
+      toastManager.success(
         editingStaff ? "Staff updated ✨" : "Welcome new member! 🎉"
       );
       
       setIsFormOpen(false);
       setEditingStaff(null);
       
-      // Note: Hum list update nahi kar rahe kyunki Socket event karega
-      // lekin modal close kar rahe hain
-      if(!editingStaff) setSelectedStaff(null); 
+      if (editingStaff) {
+        // Update existing staff in list
+        setStaffList((prev) =>
+          prev.map((s) => (s.id === editingStaff.id ? result.data : s))
+        );
+        if (selectedStaff?.id === editingStaff.id) {
+          setSelectedStaff(result.data);
+        }
+      } else {
+        // Add new staff to list
+        setStaffList((prev) => [result.data, ...prev]);
+        setSelectedStaff(null);
+      }
       
       router.refresh(); 
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : "An error occurred";
-      toast.error(errorMessage);
+      toastManager.error(errorMessage);
     }
   };
 
@@ -171,18 +106,18 @@ export default function StaffList({ initialStaff }: StaffListProps) {
       });
 
       if (!res.ok) {
-        throw new Error("Update failed");
         optimisticUpdate(currentStatus); // Error aaya to wapas purana status
+        throw new Error("Update failed");
       }
 
-      toast.success(
+      toastManager.success(
         newStatus ? "Staff Activated 🚀" : "Staff Deactivated 💤"
       );
       
       router.refresh(); // Backup refresh
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : "An error occurred";
-      toast.error(errorMessage);
+      toastManager.error(errorMessage);
     }
   };
 
@@ -195,13 +130,14 @@ export default function StaffList({ initialStaff }: StaffListProps) {
       });
       if (!res.ok) throw new Error("Delete failed");
 
-      // UI update socket se hoga, bas modal band karo
+      // Update UI
+      setStaffList((prev) => prev.filter((s) => s.id !== deleteId));
       setDeleteId(null);
       setSelectedStaff(null);
       router.refresh();
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : "An error occurred";
-      toast.error(errorMessage);
+      toastManager.error(errorMessage);
     }
   };
 

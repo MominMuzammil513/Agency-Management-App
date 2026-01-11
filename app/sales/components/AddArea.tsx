@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Loader2, Plus } from "lucide-react";
-import { toast } from "sonner";
+import { toastManager } from "@/lib/toast-manager";
 
 interface AddAreaProps {
   onSuccess: (newArea: { id: string; name: string }) => void;
@@ -29,11 +29,11 @@ export default function AddArea({ onSuccess }: AddAreaProps) {
       const data = await res.json();
 
       onSuccess(data.area);
-      toast.success("Area added successfully! 🌱");
+      toastManager.success("Area added successfully! 🌱");
       setIsOpen(false);
       setName("");
     } catch (err) {
-      toast.error("Could not add area");
+      toastManager.error("Could not add area");
     } finally {
       setLoading(false);
     }

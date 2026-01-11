@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { toast } from "sonner";
+import { toastManager } from "@/lib/toast-manager";
 import { Loader2, Edit, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -54,10 +54,10 @@ export default function EditCategory({
       const updated = await res.json();
       onSuccess?.(updated.category);
       setIsOpen(false);
-      toast.success("Category updated ✨");
+      toastManager.success("Category updated ✨");
       router.refresh();
     } catch (err: any) {
-      toast.error(err.message);
+      toastManager.error(err.message);
     } finally {
       setLoading(false);
     }

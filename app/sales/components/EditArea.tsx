@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { Loader2, Edit2 } from "lucide-react";
-import { toast } from "sonner";
+import { toastManager } from "@/lib/toast-manager";
 
 interface EditAreaProps {
   area: { id: string; name: string };
@@ -31,10 +31,10 @@ export default function EditArea({ area, onSuccess }: EditAreaProps) {
       const data = await res.json();
 
       onSuccess(data.area);
-      toast.success("Area updated! ✏️");
+      toastManager.success("Area updated! ✏️");
       setIsOpen(false);
     } catch {
-      toast.error("Update failed");
+      toastManager.error("Update failed");
     } finally {
       setLoading(false);
     }

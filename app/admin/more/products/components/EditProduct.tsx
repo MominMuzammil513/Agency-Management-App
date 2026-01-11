@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { toast } from "sonner";
+import { toastManager } from "@/lib/toast-manager";
 import { Loader2, Edit, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { productSchema, ProductFormData } from "@/lib/zod.schema/products";
@@ -57,11 +57,11 @@ export default function EditProduct({
         body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error("Failed");
-      toast.success("Updated successfully! ✨");
+      toastManager.success("Updated successfully! ✨");
       setIsOpen(false);
       router.refresh();
     } catch (err: any) {
-      toast.error(err.message);
+      toastManager.error(err.message);
     } finally {
       setLoading(false);
     }

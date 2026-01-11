@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/authOptions";
 import { db } from "@/db/db";
 import { orders } from "@/db/schemas";
 import { eq } from "drizzle-orm";
-import { emitToRoom } from "@/lib/socket-server";
+import { broadcastOrderUpdated } from "@/lib/realtime-broadcast";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Get order details before update for socket event
+    // Get order details before update
     const orderToUpdate = await db
       .select({ agencyId: orders.agencyId })
       .from(orders)
@@ -40,8 +40,8 @@ export async function POST(req: NextRequest) {
       })
       .where(eq(orders.id, orderId));
 
-    // 📡 Emit Socket.io event for real-time order status update
-    emitToRoom(`agency:${orderToUpdate[0].agencyId}`, "order:status-updated", {
+    // Broadcast real-time update
+    await broadcastOrderUpdated(orderToUpdate[0].agencyId, {
       orderId,
       status: "delivered",
     });

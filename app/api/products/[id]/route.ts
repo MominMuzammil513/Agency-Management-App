@@ -75,7 +75,7 @@ import { products } from "@/db/schemas";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { eq, and } from "drizzle-orm";
-import { emitToRoom } from "@/lib/socket-server"; // 👈 Import
+import { broadcastProductUpdated, broadcastProductDeleted } from "@/lib/realtime-broadcast";
 
 export async function PUT(
   req: NextRequest,
@@ -101,8 +101,8 @@ export async function PUT(
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
 
-  // 📡 Emit Socket Event
-  emitToRoom(`agency:${session.user.agencyId}`, "product:updated", updated[0]);
+  // Broadcast real-time update
+  await broadcastProductUpdated(session.user.agencyId, updated[0]);
 
   return NextResponse.json({ product: updated[0] });
 }
@@ -127,8 +127,8 @@ export async function DELETE(
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
 
-  // 📡 Emit Socket Event
-  emitToRoom(`agency:${session.user.agencyId}`, "product:deleted", id);
+  // Broadcast real-time update
+  await broadcastProductDeleted(session.user.agencyId, id);
 
   return NextResponse.json({ success: true });
 }

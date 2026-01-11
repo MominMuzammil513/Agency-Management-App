@@ -11,6 +11,7 @@ import {
   MoreHorizontal,
   LogOut,
   ClipboardList,
+  User,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -21,9 +22,9 @@ const iconMap: Record<
   home: Home,
   package: Package,
   "bar-chart-3": BarChart3,
-  "more-horizontal": MoreHorizontal,
+  "more-horizontal": User, // Use User icon for profile
   logout: LogOut,
-  orders: ClipboardList, // 🔥 2. Register new icon here
+  orders: ClipboardList,
 };
 
 type NavItem = {

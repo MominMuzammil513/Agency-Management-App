@@ -5,7 +5,7 @@ import { db } from "@/db/db";
 import { users } from "@/db/schemas";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
-import { emitToRoom } from "@/lib/socket-server";
+import { broadcastStaffStatusUpdated } from "@/lib/realtime-broadcast";
 
 const statusSchema = z.object({
   isActive: z.boolean(),
@@ -64,9 +64,9 @@ export async function PATCH(
         createdAt: users.createdAt,
       });
 
-    // 📡 Emit Socket.io event for real-time update
-    if (owner.agencyId && updated.length > 0) {
-      emitToRoom(`agency:${owner.agencyId}`, "staff:status-updated", {
+    // Broadcast real-time update
+    if (updated.length > 0) {
+      await broadcastStaffStatusUpdated(owner.agencyId, {
         id: updated[0].id,
         isActive: updated[0].isActive,
       });
