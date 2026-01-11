@@ -2,6 +2,8 @@ import BottomNav from "@/components/ui/ButtonNav"; // Reuse existing component
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
+import SocketRoomManager from "@/components/SocketRoomManager";
+import SocketEventHandler from "@/components/SocketEventHandler";
 
 export default async function DeliveryLayout({
   children,
@@ -23,7 +25,15 @@ export default async function DeliveryLayout({
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans md:max-w-md md:mx-auto shadow-2xl relative pb-24">
-      {children}
+      
+      {/* 🔥 SOCKET MANAGERS (Invisible Logic) */}
+      <SocketRoomManager />
+      <SocketEventHandler />
+
+      <main className="flex-1 overflow-y-auto pb-24 scrollbar-hide">
+        {children}
+      </main>
+      
       <BottomNav items={deliveryNavItems} exactMatchHref="/delivery" />
     </div>
   );

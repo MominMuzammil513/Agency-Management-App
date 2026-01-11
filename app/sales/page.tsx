@@ -13,10 +13,8 @@ export default async function SalesPage() {
     return redirect("/login");
   }
 
-  const whereClause =
-    session.user.role === "super_admin"
-      ? undefined
-      : eq(areas.agencyId, session.user.agencyId ?? "");
+  // Only show areas that match the user's agency
+  const whereClause = eq(areas.agencyId, session.user.agencyId ?? "");
 
   const areaList = await db
     .select({ id: areas.id, name: areas.name })

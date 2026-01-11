@@ -5,6 +5,7 @@ import { db } from "@/db/db";
 import { shops } from "@/db/schemas";
 import { eq } from "drizzle-orm";
 import { authOptions } from "@/lib/authOptions";
+import { emitToRoom } from "@/lib/socket-server";
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
@@ -46,6 +47,9 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
+  if (!session.user.agencyId) {
+    return new NextResponse("Agency ID is required", { status: 400 });
+  }
 
   const newShop = await db
     .insert(shops)
@@ -62,7 +66,28 @@ export async function POST(req: Request) {
       name: shops.name,
       ownerName: shops.ownerName,
       mobile: shops.mobile,
+      areaId: shops.areaId, // Include areaId for filtering
     });
 
-  return NextResponse.json({ shop: newShop[0] });
+  // 📡 Emit Socket.io event for real-time update to both area and agency
+  const shopData = newShop[0];
+  const agencyId = session.user.agencyId;
+  
+  console.log("📦 Shop created, emitting Socket.io events:", {
+    shopData,
+    areaId,
+    agencyId,
+    room1: `area:${areaId}`,
+    room2: agencyId ? `agency:${agencyId}` : null,
+  });
+  
+  // Emit to area room for users viewing that area
+  emitToRoom(`area:${areaId}`, "shop:created", shopData);
+  
+  // Also emit to agency room so all agency users see the update
+  if (agencyId) {
+    emitToRoom(`agency:${agencyId}`, "shop:created", shopData);
+  }
+
+  return NextResponse.json({ shop: shopData });
 }

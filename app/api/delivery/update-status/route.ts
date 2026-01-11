@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/authOptions";
 import { db } from "@/db/db";
 import { orders } from "@/db/schemas";
 import { eq } from "drizzle-orm";
+import { emitToRoom } from "@/lib/socket-server";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -19,6 +20,17 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // Get order details before update for socket event
+    const orderToUpdate = await db
+      .select({ agencyId: orders.agencyId })
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1);
+
+    if (orderToUpdate.length === 0) {
+      return NextResponse.json({ message: "Order not found" }, { status: 404 });
+    }
+
     await db
       .update(orders)
       .set({
@@ -27,6 +39,12 @@ export async function POST(req: NextRequest) {
         updatedAt: new Date().toISOString(), // Assuming string date for SQLite
       })
       .where(eq(orders.id, orderId));
+
+    // 📡 Emit Socket.io event for real-time order status update
+    emitToRoom(`agency:${orderToUpdate[0].agencyId}`, "order:status-updated", {
+      orderId,
+      status: "delivered",
+    });
 
     return NextResponse.json({ success: true });
   } catch (e) {

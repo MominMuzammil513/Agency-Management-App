@@ -5,6 +5,7 @@ import { db } from "@/db/db";
 import { areas } from "@/db/schemas";
 import { eq } from "drizzle-orm";
 import { authOptions } from "@/lib/authOptions";
+import { emitToRoom, emitToAll } from "@/lib/socket-server";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -50,6 +51,9 @@ export async function POST(req: NextRequest) {
       { status: 403 }
     );
   }
+  if (!agencyId) {
+    return new NextResponse("Agency ID is required", { status: 400 });
+  }
 
   const newArea = await db
     .insert(areas)
@@ -60,7 +64,15 @@ export async function POST(req: NextRequest) {
     })
     .returning({ id: areas.id, name: areas.name });
 
-  return NextResponse.json({ area: newArea[0] });
+  // 📡 Emit Socket.io event for real-time update
+  const areaData = newArea[0];
+  if (agencyId) {
+    emitToRoom(`agency:${agencyId}`, "area:created", areaData);
+  } else {
+    emitToAll("area:created", areaData);
+  }
+
+  return NextResponse.json({ area: areaData });
 }
 
 // PUT & DELETE using searchParams (?id=...)
@@ -107,7 +119,16 @@ export async function PUT(req: NextRequest) {
     .where(eq(areas.id, id))
     .returning({ id: areas.id, name: areas.name });
 
-  return NextResponse.json({ area: updated[0] });
+  // 📡 Emit Socket.io event for real-time update
+  const areaData = updated[0];
+  const agencyId = existing[0].agencyId;
+  if (agencyId) {
+    emitToRoom(`agency:${agencyId}`, "area:updated", areaData);
+  } else {
+    emitToAll("area:updated", areaData);
+  }
+
+  return NextResponse.json({ area: areaData });
 }
 
 export async function DELETE(req: NextRequest) {
@@ -140,6 +161,14 @@ export async function DELETE(req: NextRequest) {
   }
 
   await db.delete(areas).where(eq(areas.id, id));
+
+  // 📡 Emit Socket.io event for real-time update
+  const agencyId = existing[0].agencyId;
+  if (agencyId) {
+    emitToRoom(`agency:${agencyId}`, "area:deleted", id);
+  } else {
+    emitToAll("area:deleted", id);
+  }
 
   return NextResponse.json({ success: true });
 }

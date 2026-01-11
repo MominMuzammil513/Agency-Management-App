@@ -6,6 +6,7 @@ import { users } from "@/db/schemas";
 import { eq, and } from "drizzle-orm";
 import { updateStaffSchema } from "@/lib/zod.schema/update-staff";
 import bcrypt from "bcryptjs";
+import { emitToRoom } from "@/lib/socket-server";
 
 export async function PATCH(
   req: NextRequest,
@@ -55,7 +56,7 @@ export async function PATCH(
     }
 
     // Database Update
-    await db
+    const updated = await db
       .update(users)
       .set(updateData)
       .where(
@@ -63,7 +64,22 @@ export async function PATCH(
           eq(users.id, id),
           eq(users.agencyId, owner.agencyId) // ✅ Security: Sirf apni agency ke staff ko update karo
         )
-      );
+      )
+      .returning({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        mobile: users.mobile,
+        altMobile: users.altMobile,
+        role: users.role,
+        isActive: users.isActive,
+        createdAt: users.createdAt,
+      });
+
+    // 📡 Emit Socket.io event for real-time update
+    if (owner.agencyId && updated.length > 0) {
+      emitToRoom(`agency:${owner.agencyId}`, "staff:updated", updated[0]);
+    }
 
     return NextResponse.json({ success: true, message: "Staff updated" });
 
@@ -105,6 +121,11 @@ export async function DELETE(
         eq(users.agencyId, owner.agencyId) // ✅ Security
       )
     );
+
+  // 📡 Emit Socket.io event for real-time update
+  if (owner.agencyId) {
+    emitToRoom(`agency:${owner.agencyId}`, "staff:deleted", id);
+  }
 
   return NextResponse.json({ success: true, message: "Staff deleted" });
 }

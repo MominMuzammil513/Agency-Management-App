@@ -14,6 +14,9 @@ export async function POST(req: NextRequest) {
   if (!productId || quantity <= 0) return NextResponse.json({ message: "Invalid data" }, { status: 400 });
 
   // Upsert stock
+  if (!session.user.agencyId) {
+    return new NextResponse("Agency ID is required", { status: 400 });
+  }
   await db.insert(stock).values({
     id: crypto.randomUUID(),
     productId,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -13,7 +13,7 @@ import {
   RefreshCcw,
 } from "lucide-react";
 import { toast } from "sonner";
-import useSWR from "swr"; // 🔥 SWR Import
+import { useSocket } from "@/lib/socket-client";
 import AddShop from "./AddShop";
 import EditShop from "./EditShop";
 
@@ -22,6 +22,7 @@ interface Shop {
   name: string;
   ownerName: string | null;
   mobile: string | null;
+  areaId?: string; // For filtering real-time updates
 }
 
 interface ShopsDashboardProps {
@@ -30,29 +31,140 @@ interface ShopsDashboardProps {
   initialShops: Shop[];
 }
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
-
 export default function ShopsDashboard({
   areaId,
   areaName,
   initialShops,
 }: ShopsDashboardProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [shops, setShops] = useState<Shop[]>(initialShops);
+  const [isValidating, setIsValidating] = useState(false);
+  const { socket, isConnected } = useSocket();
+  
+  // Debug: Log connection status
+  useEffect(() => {
+    console.log("🔌 ShopsDashboard Socket Status:", { 
+      hasSocket: !!socket, 
+      isConnected, 
+      areaId,
+      socketId: socket?.id 
+    });
+  }, [socket, isConnected, areaId]);
 
-  // 🔥 SWR Configuration (Real-time Sync)
-  const { data, mutate, isValidating } = useSWR(
-    `/api/shops?areaId=${areaId}`,
-    fetcher,
-    {
-      fallbackData: { shops: initialShops },
-      refreshInterval: 15000, // ✅ Ab har 15 sec mein check karega (Server Relaxed)
-      revalidateOnFocus: true, // ✅ Tab switch karne par update hoga
-      revalidateOnReconnect: true, // ✅ Net aate hi update
-      dedupingInterval: 5000, // ✅ 5 sec tak same request dobara nahi jayegi
+  // 📡 Real-time Socket.io listeners
+  useEffect(() => {
+    if (!socket) {
+      console.log("⚠️ Socket not available yet");
+      return;
     }
-  );
 
-  const shops: Shop[] = data?.shops || [];
+    if (!isConnected) {
+      console.log("⏳ Socket not connected yet, waiting...");
+      // Wait for connection
+      const checkConnection = setInterval(() => {
+        if (socket.connected) {
+          clearInterval(checkConnection);
+          // Re-run this effect when connected
+          console.log("✅ Socket connected, setting up listeners");
+        }
+      }, 100);
+      
+      return () => clearInterval(checkConnection);
+    }
+
+    console.log("✅ Setting up Socket.io listeners for area:", areaId);
+    
+    // Join area room for real-time shop updates
+    socket.emit("join-room", `area:${areaId}`);
+    console.log("📦 Emitted join-room for area:", areaId);
+
+    // Listen for shop updates
+    const handleShopCreated = (newShop: any) => {
+      console.log("🔔 Received shop:created event", { 
+        newShop, 
+        newShopAreaId: newShop?.areaId, 
+        currentAreaId: areaId,
+        matches: newShop?.areaId === areaId
+      });
+      
+      // Check if shop belongs to current area
+      if (newShop && newShop.id) {
+        // Convert both to strings for comparison (in case of type mismatch)
+        const shopAreaId = String(newShop.areaId || "");
+        const currentArea = String(areaId || "");
+        
+        // If areaId matches OR if areaId is not provided (fallback), add it
+        if (shopAreaId === currentArea || !shopAreaId) {
+          setShops((prev) => {
+            // Only add if shop doesn't already exist
+            if (prev.find(s => s.id === newShop.id)) {
+              console.log("⚠️ Shop already exists in list, skipping duplicate");
+              return prev;
+            }
+            console.log("✅ Adding new shop to list:", newShop);
+            const shopToAdd: Shop = {
+              id: newShop.id,
+              name: newShop.name,
+              ownerName: newShop.ownerName || null,
+              mobile: newShop.mobile || null,
+              areaId: shopAreaId || areaId,
+            };
+            toast.success(`New shop added: ${shopToAdd.name} 🏪`);
+            return [...prev, shopToAdd];
+          });
+        } else {
+          console.log("❌ Shop areaId doesn't match - ignoring:", {
+            shopAreaId,
+            currentArea,
+            shop: newShop.name
+          });
+        }
+      } else {
+        console.error("❌ Invalid shop data received:", newShop);
+      }
+    };
+
+    socket.on("shop:created", handleShopCreated);
+
+    socket.on("shop:updated", (updatedShop: Shop) => {
+      console.log("Received shop:updated event", { updatedShop, currentAreaId: areaId });
+      if (updatedShop && updatedShop.id) {
+        if (updatedShop.areaId === areaId || !updatedShop.areaId) {
+          // Update if shop belongs to this area
+          setShops((prev) =>
+            prev.map((s) => (s.id === updatedShop.id ? updatedShop : s))
+          );
+          toast.success("Shop updated ✏️");
+        } else {
+          // If shop moved to different area, remove it from this list
+          setShops((prev) => prev.filter((s) => s.id !== updatedShop.id));
+        }
+      }
+    });
+
+    socket.on("shop:deleted", (deletedId: string) => {
+      console.log("Received shop:deleted event", deletedId);
+      setShops((prev) => prev.filter((s) => s.id !== deletedId));
+    });
+
+    // Listen for full shop list refresh
+    socket.on("shops:refresh", (newShops: Shop[]) => {
+      setShops(newShops);
+    });
+
+    return () => {
+      socket.off("shop:created", handleShopCreated);
+      socket.off("shop:updated");
+      socket.off("shop:deleted");
+      socket.off("shops:refresh");
+      socket.emit("leave-room", `area:${areaId}`);
+    };
+  }, [socket, areaId, isConnected]);
+
+  // Only sync initial data - Socket.io handles all updates
+  useEffect(() => {
+    setShops(initialShops);
+  }, [initialShops]);
 
   // Search Filter
   const filteredShops = useMemo(() => {
@@ -65,22 +177,17 @@ export default function ShopsDashboard({
     );
   }, [searchQuery, shops]);
 
-  // 🔥 Delete Logic
+  // Delete Logic - Socket.io will handle real-time updates
   const handleDelete = async (id: string) => {
     if (!confirm("Remove this shop?")) return;
-
-    // Optimistic Update
-    const updatedShops = shops.filter((s) => s.id !== id);
-    mutate({ shops: updatedShops }, false);
 
     try {
       const res = await fetch(`/api/shops/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed");
       toast.success("Shop removed");
-      mutate(); // Sync with server
+      // Socket.io event will automatically update the UI
     } catch {
       toast.error("Could not delete shop");
-      mutate();
     }
   };
 
@@ -125,8 +232,34 @@ export default function ShopsDashboard({
             />
           </div>
 
-          {/* Add Shop Component */}
-          <AddShop areaId={areaId} onSuccess={() => mutate()} />
+          {/* Add Shop Component - Socket.io will handle real-time updates */}
+          <AddShop areaId={areaId} onSuccess={(shop) => {
+            // Immediate optimistic update - add shop right away
+            console.log("🎯 AddShop onSuccess - Adding shop immediately:", shop);
+            
+            if (shop && shop.id) {
+              const shopWithArea: Shop = {
+                id: shop.id,
+                name: shop.name,
+                ownerName: shop.ownerName || null,
+                mobile: shop.mobile || null,
+                areaId: shop.areaId || areaId, // Ensure areaId is set
+              };
+              
+              // Add shop immediately (socket event handler will prevent duplicates)
+              setShops((prev) => {
+                // Check for duplicates before adding
+                if (prev.find(s => s.id === shopWithArea.id)) {
+                  console.log("⚠️ Shop already in list (socket event may have fired first)");
+                  return prev;
+                }
+                console.log("✅ Adding shop to list via onSuccess:", shopWithArea);
+                return [...prev, shopWithArea];
+              });
+              
+              // Toast is already shown in AddShop component
+            }
+          }} />
         </div>
       </div>
 
@@ -177,7 +310,7 @@ export default function ShopsDashboard({
 
                   {/* Actions (Edit/Delete) */}
                   <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-100">
-                    <EditShop shop={shop} onSuccess={() => mutate()} />
+                    <EditShop shop={shop} onSuccess={() => {}} />
                     <div className="w-px h-3 bg-slate-200"></div>
                     <button
                       onClick={() => handleDelete(shop.id)}

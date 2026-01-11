@@ -210,7 +210,7 @@ export default function OrdersList({ orders }: { orders: Order[] }) {
         {filteredOrders.length === 0 ? (
           <div className="text-center py-20 opacity-60">
             <div className="bg-emerald-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
-              <HeartHandshake size={48} className="text-emerald-300" />
+              <Package size={48} className="text-emerald-300" />
             </div>
             <p className="text-slate-400 font-medium">
               No orders yet, let's work! 💪
@@ -222,7 +222,30 @@ export default function OrdersList({ orders }: { orders: Order[] }) {
               ? new Date(order.createdAt)
               : new Date();
             const isSelected = selectedOrders.includes(order.id);
-
+            if(order.status === "cancelled") {
+              return (
+                <div key={order.id} className="text-center py-20 opacity-60">
+                  <div className="bg-emerald-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+                    <HeartHandshake size={48} className="text-emerald-300" />
+                  </div>
+                  <p className="text-slate-400 font-medium">
+                    Order cancelled 😢
+                  </p>
+                </div>
+              );
+            }
+            if(order.status === "delivered") {
+              return (
+                <div key={order.id} className="text-center py-20 opacity-60">
+                  <div className="bg-emerald-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+                    <HeartHandshake size={48} className="text-emerald-300" />
+                  </div>
+                  <p className="text-slate-400 font-medium">
+                    Order delivered 😢
+                  </p>
+                </div>
+              );
+            }
             return (
               <div
                 key={order.id}

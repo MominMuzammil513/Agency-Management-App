@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { Search, MapPin, ChevronRight, LayoutGrid, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import useSWR from "swr"; // 🔥 1. Import SWR
+import { useSession } from "next-auth/react";
+import { useSocket } from "@/lib/socket-client";
 import AddArea from "./AddArea";
 import EditArea from "./EditArea";
 
@@ -25,23 +26,62 @@ interface SalesDashboardProps {
   areaList?: Area[]; // Initial data from server
 }
 
-// 🔥 2. Fetcher Function for SWR
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
-
 export default function SalesDashboard({ user, areaList = [] }: SalesDashboardProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [areas, setAreas] = useState<Area[]>(areaList);
+  const { data: session } = useSession();
+  const { socket, isConnected } = useSocket();
 
-  // 🔥 3. Use SWR for Real-Time Data
-  const { data, mutate } = useSWR("/api/areas", fetcher, {
-    fallbackData: { areas: areaList },
-    refreshInterval: 15000, // ✅ Ab har 15 sec mein check karega (Server Relaxed)
-    revalidateOnFocus: true, // ✅ Tab switch karne par update hoga
-    revalidateOnReconnect: true, // ✅ Net aate hi update
-    dedupingInterval: 5000, // ✅ 5 sec tak same request dobara nahi jayegi
-  });
+  // 📡 Real-time Socket.io listeners
+  useEffect(() => {
+    if (!socket || !session?.user?.agencyId) return;
 
-  // Safe access to areas
-  const areas: Area[] = data?.areas || [];
+    // Join agency room for real-time updates
+    const agencyId = session.user.agencyId;
+    socket.emit("join-room", `agency:${agencyId}`);
+
+    // Listen for area updates
+    socket.on("area:created", (newArea: Area) => {
+      setAreas((prev) => {
+        // Avoid duplicates
+        if (prev.find(a => a.id === newArea.id)) return prev;
+        toast.success("New area added! 🌱");
+        return [...prev, newArea];
+      });
+    });
+
+    socket.on("area:updated", (updatedArea: Area) => {
+      setAreas((prev) =>
+        prev.map((a) => (a.id === updatedArea.id ? updatedArea : a))
+      );
+      toast.success("Area updated ✏️");
+    });
+
+    socket.on("area:deleted", (deletedId: string) => {
+      setAreas((prev) => prev.filter((a) => a.id !== deletedId));
+      toast.success("Area deleted");
+    });
+
+    // Listen for full area list refresh
+    socket.on("areas:refresh", (newAreas: Area[]) => {
+      setAreas(newAreas);
+    });
+
+    return () => {
+      socket.off("area:created");
+      socket.off("area:updated");
+      socket.off("area:deleted");
+      socket.off("areas:refresh");
+      if (session?.user?.agencyId) {
+        socket.emit("leave-room", `agency:${session.user.agencyId}`);
+      }
+    };
+  }, [socket, session?.user?.agencyId]);
+
+  // Only sync initial data when component mounts - Socket.io handles all updates
+  useEffect(() => {
+    setAreas(areaList);
+  }, [areaList]);
 
   // Search Logic
   const filteredAreas = useMemo(() => {
@@ -51,24 +91,17 @@ export default function SalesDashboard({ user, areaList = [] }: SalesDashboardPr
     );
   }, [searchQuery, areas]);
 
-  // 🔥 Delete Logic with Auto Update
+  // Delete Logic - Socket.io will handle real-time updates
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this area permanently?")) return;
-
-    // Optimistic Update (UI se turant gayab)
-    mutate(
-      { areas: areas.filter((a) => a.id !== id) },
-      false // Revalidate mat karo abhi, bas UI update karo
-    );
 
     try {
       const res = await fetch(`/api/areas?id=${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed");
       toast.success("Area deleted");
-      mutate(); // ⚡ Server se fresh data maang lo
+      // Socket.io event will automatically update the UI
     } catch {
       toast.error("Could not delete area");
-      mutate(); // Error aaya to wapas purana data lao
     }
   };
 
@@ -117,8 +150,8 @@ export default function SalesDashboard({ user, areaList = [] }: SalesDashboardPr
               className="w-full pl-3 pr-4 py-2.5 bg-transparent text-slate-700 placeholder:text-slate-400 focus:outline-none font-medium"
             />
           </div>
-          {/* Add Button - Calls mutate on success */}
-          <AddArea onSuccess={() => mutate()} />
+          {/* Add Button - Socket.io will handle real-time updates */}
+          <AddArea onSuccess={() => {}} />
         </div>
 
         {/* Title */}
@@ -167,7 +200,7 @@ export default function SalesDashboard({ user, areaList = [] }: SalesDashboardPr
                 <div className="flex items-center gap-2 pl-3 border-l border-slate-100 ml-2">
                   <EditArea 
                     area={area} 
-                    onSuccess={() => mutate()} // ⚡ Auto update on edit
+                    onSuccess={() => {}} // Socket.io will handle real-time updates
                   />
 
                   <button

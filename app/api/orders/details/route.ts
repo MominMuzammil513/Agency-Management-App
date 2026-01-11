@@ -30,6 +30,7 @@
 //     );
 //   }
 // }
+// app/api/orders/details/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/db";
 import { orderItems, products } from "@/db/schemas";

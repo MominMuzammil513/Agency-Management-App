@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Toaster, toast } from "sonner";
+import { useSession } from "next-auth/react";
+import { useSocket } from "@/lib/socket-client";
 import { generatePDF } from "@/lib/generate-pdf";
 import { Order } from "./types";
 import AreaGridView from "./dashboard/AreaGridView";
@@ -9,11 +11,55 @@ import OrderListView from "./dashboard/OrderListView";
 import LoadSheetModal from "./dashboard/LoadSheetModal";
 import ViewBillModal from "./dashboard/ViewBillModal";
 
-export default function DeliveryDashboard({ orders }: { orders: Order[] }) {
+export default function DeliveryDashboard({ orders: initialOrders }: { orders: Order[] }) {
   // State
+  const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [view, setView] = useState<"AREAS" | "ORDERS">("AREAS");
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const { data: session } = useSession();
+  const { socket } = useSocket();
+
+  // Sync initial data
+  useEffect(() => {
+    setOrders(initialOrders);
+  }, [initialOrders]);
+
+  // 📡 Real-time Socket.io listeners for orders
+  useEffect(() => {
+    if (!socket || !session?.user?.agencyId) return;
+
+    const agencyId = session.user.agencyId;
+    socket.emit("join-room", `agency:${agencyId}`);
+
+    // Listen for new orders
+    socket.on("order:created", (orderData: any) => {
+      // Refresh orders list - in production, you'd want to fetch updated list
+      // For now, we'll trigger a refetch or use a refresh event
+    });
+
+    // Listen for order status updates
+    socket.on("order:status-updated", (data: { orderId: string; status: string }) => {
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === data.orderId ? { ...o, status: data.status as any } : o
+        )
+      );
+      
+      // Remove delivered orders from list
+      if (data.status === "delivered" || data.status === "cancelled") {
+        setOrders((prev) => prev.filter((o) => o.id !== data.orderId));
+      }
+    });
+
+    return () => {
+      socket.off("order:created");
+      socket.off("order:status-updated");
+      if (session?.user?.agencyId) {
+        socket.emit("leave-room", `agency:${session.user.agencyId}`);
+      }
+    };
+  }, [socket, session?.user?.agencyId]);
 
   // Modals
   const [viewOrder, setViewOrder] = useState<Order | null>(null);

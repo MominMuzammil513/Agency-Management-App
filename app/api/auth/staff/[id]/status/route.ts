@@ -5,6 +5,7 @@ import { db } from "@/db/db";
 import { users } from "@/db/schemas";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
+import { emitToRoom } from "@/lib/socket-server";
 
 const statusSchema = z.object({
   isActive: z.boolean(),
@@ -43,7 +44,7 @@ export async function PATCH(
 
     // Update Status
     // Schema mein integer hai but mode: "boolean" hai, toh direct boolean pass kar sakte hain
-    await db
+    const updated = await db
       .update(users)
       .set({ isActive: isActive }) 
       .where(
@@ -51,7 +52,25 @@ export async function PATCH(
           eq(users.id, id),
           eq(users.agencyId, owner.agencyId)
         )
-      );
+      )
+      .returning({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        mobile: users.mobile,
+        altMobile: users.altMobile,
+        role: users.role,
+        isActive: users.isActive,
+        createdAt: users.createdAt,
+      });
+
+    // 📡 Emit Socket.io event for real-time update
+    if (owner.agencyId && updated.length > 0) {
+      emitToRoom(`agency:${owner.agencyId}`, "staff:status-updated", {
+        id: updated[0].id,
+        isActive: updated[0].isActive,
+      });
+    }
 
     return NextResponse.json({
       success: true,

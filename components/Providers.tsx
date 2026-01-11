@@ -2,9 +2,12 @@
 
 import { SessionProvider } from "next-auth/react";
 import { Toaster } from "sonner";
+import { SocketProvider } from "@/lib/socket-client";
+
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-      <SessionProvider>
+    <SessionProvider>
+      <SocketProvider>
         {children}
         <Toaster
           position="top-center"
@@ -15,6 +18,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             unstyled: true,
           }}
         />
-      </SessionProvider>
+      </SocketProvider>
+    </SessionProvider>
   );
 }

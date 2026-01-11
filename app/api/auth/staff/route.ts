@@ -154,6 +154,7 @@ import { eq } from "drizzle-orm";
 import { createStaffSchema } from "@/lib/zod.schema/create-staff";
 import { generateId } from "@/lib/generateId"; // ID generator helper
 import bcrypt from "bcryptjs";
+import { emitToRoom } from "@/lib/socket-server";
 
 export async function POST(req: NextRequest) {
   try {
@@ -196,7 +197,7 @@ export async function POST(req: NextRequest) {
     const id = generateId();
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
-    await db.insert(users).values({
+    const newStaff = await db.insert(users).values({
       id: id,
       name: data.name,
       email: data.email.toLowerCase(),
@@ -207,7 +208,21 @@ export async function POST(req: NextRequest) {
       agencyId: owner.agencyId, // ✅ Owner ki Agency ID
       isActive: true, // Default true
       mustResetPassword: false,
+    }).returning({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      mobile: users.mobile,
+      altMobile: users.altMobile,
+      role: users.role,
+      isActive: users.isActive,
+      createdAt: users.createdAt,
     });
+
+    // 📡 Emit Socket.io event for real-time update
+    if (owner.agencyId) {
+      emitToRoom(`agency:${owner.agencyId}`, "staff:created", newStaff[0]);
+    }
 
     return NextResponse.json({ 
       success: true, 

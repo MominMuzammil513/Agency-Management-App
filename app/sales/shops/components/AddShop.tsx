@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom"; // 🔥 Portal Import
 import { Loader2, Plus, X } from "lucide-react";
+import { toast } from "sonner";
 
 interface AddShopProps {
   areaId: string;
@@ -36,14 +37,27 @@ export default function AddShop({ areaId, onSuccess }: AddShopProps) {
         body: JSON.stringify({ ...formData, areaId }),
       });
 
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Failed to create shop");
+      }
       const data = await res.json();
 
-      onSuccess(data.shop);
+      console.log("✅ Shop created successfully, response:", data);
+      
+      // Ensure shop data has areaId
+      const shopData = {
+        ...data.shop,
+        areaId: areaId, // Ensure areaId is set
+      };
+      
+      toast.success("Shop added successfully! 🏪");
+      onSuccess(shopData); // Pass shop with areaId
       setIsOpen(false);
       setFormData({ name: "", ownerName: "", mobile: "" });
-    } catch {
-      // Handle error
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not add shop";
+      toast.error(message);
     } finally {
       setLoading(false);
     }

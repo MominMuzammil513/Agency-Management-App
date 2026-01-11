@@ -1,3 +1,4 @@
+// app/api/orders/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { db } from "@/db/db";
@@ -11,6 +12,7 @@ import {
 import { eq, inArray, sql } from "drizzle-orm";
 import { authOptions } from "@/lib/authOptions";
 import { z } from "zod";
+import { emitToRoom, emitToAll } from "@/lib/socket-server";
 
 // Validation Schema
 const orderSchema = z.object({
@@ -110,6 +112,19 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // 📡 Emit Socket.io event for real-time order update
+    emitToRoom(`agency:${session.user.agencyId}`, "order:created", {
+      orderId,
+      shopId,
+      status: "pending",
+      agencyId: session.user.agencyId,
+    });
+
+    // Also emit to stock room for real-time stock updates
+    emitToRoom(`agency:${session.user.agencyId}`, "stock:updated", {
+      products: items.map(item => ({ productId: item.productId, quantity: item.quantity })),
+    });
+
     return NextResponse.json({ success: true, orderId });
   } catch (error: any) {
     console.error("Order Error:", error);
@@ -169,9 +184,28 @@ export async function DELETE(req: NextRequest) {
       }
     }
 
+    // Get order details before deletion for socket event
+    const orderToDelete = await db
+      .select({ agencyId: orders.agencyId, shopId: orders.shopId })
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1);
+
     // 3. Delete Order Items & Order
     await db.delete(orderItems).where(eq(orderItems.orderId, orderId));
     await db.delete(orders).where(eq(orders.id, orderId));
+
+    // 📡 Emit Socket.io event for real-time order deletion
+    if (orderToDelete.length > 0) {
+      const order = orderToDelete[0];
+      emitToRoom(`agency:${order.agencyId}`, "order:deleted", orderId);
+      
+      // Emit stock restore update
+      emitToRoom(`agency:${order.agencyId}`, "stock:updated", {
+        orderId,
+        action: "restored",
+      });
+    }
 
     return NextResponse.json({ success: true });
 
