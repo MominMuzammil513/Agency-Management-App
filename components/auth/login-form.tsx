@@ -31,22 +31,44 @@ export default function LoginForm() {
   } = form;
 
   const onSubmit = async (data: LoginFormValues) => {
-console.log(data,"datadata");
-    const res = await signIn("credentials", {
-      redirect: false,
-      email: data.email,
-      password: data.password,
-    });
-    if (res?.error) {
+    try {
+      const res = await signIn("credentials", {
+        redirect: false,
+        email: data.email.toLowerCase().trim(),
+        password: data.password,
+      });
+
+      if (res?.error) {
+        // Handle specific error messages
+        let errorMessage = "Login failed";
+        if (res.error === "CredentialsSignin") {
+          errorMessage = "Invalid email or password";
+        } else if (res.error) {
+          errorMessage = res.error;
+        }
+        
+        form.setError("root", {
+          type: "manual",
+          message: errorMessage,
+        });
+        return;
+      }
+
+      // Success - check if ok is true or if there's no error
+      if (res?.ok || !res?.error) {
+        // Force a hard redirect to ensure session is loaded
+        window.location.href = "/";
+      } else {
+        form.setError("root", {
+          type: "manual",
+          message: "Login failed. Please try again.",
+        });
+      }
+    } catch (error: any) {
       form.setError("root", {
         type: "manual",
-        message: res.error || "Login failed",
+        message: error.message || "An error occurred. Please try again.",
       });
-    } else if(res?.status === 200) {
-      // Success
-      alert("Login successful! Redirecting...");
-      router.push("/");
-      router.refresh();
     }
     // try {
     //   const res = await fetch("/api/auth/login", {

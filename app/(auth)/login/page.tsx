@@ -1,7 +1,29 @@
 // app/login/page.tsx
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/authOptions";
 import LoginForm from "@/components/auth/login-form";
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  // Check if user is already logged in
+  const session = await getServerSession(authOptions);
+  
+  if (session?.user) {
+    // Redirect based on role
+    const role = session.user.role;
+    const roleRedirects: Record<string, string> = {
+      owner_admin: "/admin",
+      salesman: "/sales",
+      delivery_boy: "/delivery",
+      super_admin: "/superadmin",
+    };
+    
+    const redirectPath = roleRedirects[role];
+    if (redirectPath) {
+      redirect(redirectPath);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6">
       <div className="text-center mb-10">

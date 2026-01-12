@@ -1,6 +1,7 @@
 import { authOptions } from "@/lib/authOptions";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+import HomeRedirectClient from "./components/HomeRedirectClient";
 
 export default async function Home() {
   const session = await getServerSession(authOptions);
@@ -11,6 +12,7 @@ export default async function Home() {
   }
 
   const role = session.user.role;
+  const userName = session.user.name || "User";
 
   // Map roles to paths
   const roleRedirects: Record<string, string> = {
@@ -20,11 +22,14 @@ export default async function Home() {
     super_admin: "/superadmin",
   };
 
-  // If role exists in map, redirect
-  if (roleRedirects[role]) {
-    redirect(roleRedirects[role]);
+  // Get redirect path
+  const redirectPath = roleRedirects[role];
+
+  // If role is invalid, show error
+  if (!redirectPath) {
+    throw new Error(`Invalid user role: ${role}`);
   }
 
-  // If role is invalid, throw
-  throw new Error("Invalid user role");
+  // Show professional loading/redirecting UI
+  return <HomeRedirectClient redirectPath={redirectPath} userName={userName} role={role} />;
 }
