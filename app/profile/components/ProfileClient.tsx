@@ -15,6 +15,10 @@ import {
   Lock,
   CheckCircle2,
   Settings,
+  Briefcase,
+  ShoppingCart,
+  Truck,
+  ChevronRight,
 } from "lucide-react";
 import { toastManager } from "@/lib/toast-manager";
 import BackButton from "@/components/ui/BackButton";
@@ -36,6 +40,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
   const { data: session } = useSession();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [showRoleMenu, setShowRoleMenu] = useState(false);
 
   const handleLogout = async () => {
     if (!confirm("Are you sure you want to logout?")) return;
@@ -49,6 +54,22 @@ export default function ProfileClient({ user }: ProfileClientProps) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRoleSwitch = (targetRole: "admin" | "salesman" | "delivery_boy") => {
+    // Store selected role in sessionStorage
+    sessionStorage.setItem("ownerAdminViewMode", targetRole);
+    setShowRoleMenu(false);
+    
+    // Navigate to appropriate route
+    if (targetRole === "admin") {
+      router.push("/admin");
+    } else if (targetRole === "salesman") {
+      router.push("/sales");
+    } else if (targetRole === "delivery_boy") {
+      router.push("/delivery");
+    }
+    router.refresh();
   };
 
   const roleLabels: Record<string, string> = {
@@ -199,18 +220,81 @@ export default function ProfileClient({ user }: ProfileClientProps) {
           </button>
 
           {user.role === "owner_admin" && (
-            <button
-              onClick={() => router.push("/admin/more")}
-              className="w-full bg-white rounded-2xl p-4 flex items-center gap-4 shadow-sm border border-slate-100 hover:border-emerald-200 transition-colors group"
-            >
-              <div className="h-10 w-10 bg-emerald-50 rounded-full flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
-                <Settings size={18} className="text-emerald-600" />
+            <>
+              {/* Role Switcher */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowRoleMenu(!showRoleMenu)}
+                  className="w-full bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl p-4 flex items-center gap-4 shadow-sm border-2 border-emerald-200 hover:border-emerald-300 transition-colors group"
+                >
+                  <div className="h-10 w-10 bg-emerald-100 rounded-full flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
+                    <Briefcase size={18} className="text-emerald-600" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="font-bold text-slate-800 text-sm">Switch Role</p>
+                    <p className="text-xs text-slate-500">Work as Admin, Salesman, or Delivery</p>
+                  </div>
+                  <ChevronRight 
+                    size={18} 
+                    className={`text-emerald-600 transition-transform ${showRoleMenu ? 'rotate-90' : ''}`} 
+                  />
+                </button>
+                
+                {showRoleMenu && (
+                  <div className="mt-2 space-y-2 bg-white rounded-2xl p-2 shadow-lg border border-slate-100">
+                    <button
+                      onClick={() => handleRoleSwitch("admin")}
+                      className="w-full rounded-xl p-3 flex items-center gap-3 hover:bg-emerald-50 transition-colors text-left"
+                    >
+                      <div className="h-8 w-8 bg-emerald-100 rounded-full flex items-center justify-center">
+                        <Settings size={16} className="text-emerald-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-bold text-sm text-slate-800">As Admin</p>
+                        <p className="text-xs text-slate-500">Manage everything</p>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => handleRoleSwitch("salesman")}
+                      className="w-full rounded-xl p-3 flex items-center gap-3 hover:bg-blue-50 transition-colors text-left"
+                    >
+                      <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <ShoppingCart size={16} className="text-blue-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-bold text-sm text-slate-800">As Salesman</p>
+                        <p className="text-xs text-slate-500">Take orders from shops</p>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => handleRoleSwitch("delivery_boy")}
+                      className="w-full rounded-xl p-3 flex items-center gap-3 hover:bg-orange-50 transition-colors text-left"
+                    >
+                      <div className="h-8 w-8 bg-orange-100 rounded-full flex items-center justify-center">
+                        <Truck size={16} className="text-orange-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-bold text-sm text-slate-800">As Delivery Boy</p>
+                        <p className="text-xs text-slate-500">Deliver orders</p>
+                      </div>
+                    </button>
+                  </div>
+                )}
               </div>
-              <div className="flex-1 text-left">
-                <p className="font-bold text-slate-800 text-sm">Admin Panel</p>
-                <p className="text-xs text-slate-400">Manage staff & settings</p>
-              </div>
-            </button>
+
+              <button
+                onClick={() => router.push("/admin/more")}
+                className="w-full bg-white rounded-2xl p-4 flex items-center gap-4 shadow-sm border border-slate-100 hover:border-emerald-200 transition-colors group"
+              >
+                <div className="h-10 w-10 bg-emerald-50 rounded-full flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
+                  <Settings size={18} className="text-emerald-600" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="font-bold text-slate-800 text-sm">Admin Panel</p>
+                  <p className="text-xs text-slate-400">Manage staff & settings</p>
+                </div>
+              </button>
+            </>
           )}
 
           <button

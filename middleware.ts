@@ -33,15 +33,18 @@ export async function middleware(request: NextRequest) {
   const deliveryRoutes = ["/delivery"];
 
   // Check if user is trying to access route outside their role
+  // Owner admin can access all routes (admin, sales, delivery)
   if (adminRoutes.some(route => pathname.startsWith(route)) && role !== "owner_admin" && role !== "super_admin") {
     return NextResponse.redirect(new URL("/unauthorized", request.url));
   }
 
-  if (salesRoutes.some(route => pathname.startsWith(route)) && role !== "salesman") {
+  // Allow owner_admin to access sales routes (role switching feature)
+  if (salesRoutes.some(route => pathname.startsWith(route)) && role !== "salesman" && role !== "owner_admin") {
     return NextResponse.redirect(new URL("/unauthorized", request.url));
   }
 
-  if (deliveryRoutes.some(route => pathname.startsWith(route)) && role !== "delivery_boy") {
+  // Allow owner_admin to access delivery routes (role switching feature)
+  if (deliveryRoutes.some(route => pathname.startsWith(route)) && role !== "delivery_boy" && role !== "owner_admin") {
     return NextResponse.redirect(new URL("/unauthorized", request.url));
   }
 

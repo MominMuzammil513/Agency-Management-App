@@ -4,21 +4,11 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import LoginForm from "@/components/auth/login-form";
 
-export default async function LoginPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ callbackUrl?: string }>;
-}) {
-  const params = await searchParams;
-  const callbackUrl = params?.callbackUrl;
-  
+export default async function LoginPage() {
   // Check if user is already logged in
   const session = await getServerSession(authOptions);
   
-  // Only redirect if there's NO callbackUrl (user directly accessed login page)
-  // If there's a callbackUrl, let the login form handle redirect after login
-  // This prevents redirect loops
-  if (session?.user && !callbackUrl) {
+  if (session?.user) {
     // Redirect based on role
     const role = session.user.role;
     const roleRedirects: Record<string, string> = {

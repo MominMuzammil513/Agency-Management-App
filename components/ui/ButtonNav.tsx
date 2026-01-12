@@ -12,6 +12,7 @@ import {
   LogOut,
   ClipboardList,
   User,
+  Users,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -25,6 +26,7 @@ const iconMap: Record<
   "more-horizontal": User, // Use User icon for profile
   logout: LogOut,
   orders: ClipboardList,
+  users: Users,
 };
 
 type NavItem = {

@@ -8,6 +8,16 @@ const config: NextConfig = {
         hostname: "euroindiafoods.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "images.jdmagicbox.com",
+        pathname: "/**",
+      },
     ],
   },
 };

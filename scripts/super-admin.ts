@@ -9,7 +9,7 @@ dotenv.config();
 
 async function seedSuperAdmin() {
   try {
-    const email = "superadmin@yourdomain.com";
+    const email = "muzammilaumed2376@gmail.com";
 
     // Check if super admin already exists
     const existing = await db

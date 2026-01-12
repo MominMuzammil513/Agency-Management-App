@@ -3,7 +3,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { loginSchema, LoginFormValues } from "@/lib/zod.schema/auth.schema";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -13,8 +13,6 @@ import { signIn } from "next-auth/react";
 
 export default function LoginForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl");
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -58,13 +56,8 @@ export default function LoginForm() {
 
       // Success - check if ok is true or if there's no error
       if (res?.ok || !res?.error) {
-        // Use callbackUrl if available, otherwise go to home
-        const redirectTo = callbackUrl && callbackUrl.startsWith("/") && !callbackUrl.startsWith("//")
-          ? callbackUrl
-          : "/";
-        
         // Force a hard redirect to ensure session is loaded
-        window.location.href = redirectTo;
+        window.location.href = "/";
       } else {
         form.setError("root", {
           type: "manual",

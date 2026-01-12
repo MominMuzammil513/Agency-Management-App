@@ -5,43 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1767560868620,
-      "tag": "0000_breezy_krista_starr",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1767562529322,
-      "tag": "0001_yielding_firelord",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1767682634202,
-      "tag": "0002_mixed_madrox",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1767734613745,
-      "tag": "0003_light_mindworm",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1767734628408,
-      "tag": "0004_yielding_warlock",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "6",
-      "when": 1767849119485,
-      "tag": "0005_narrow_vermin",
+      "when": 1768260094508,
+      "tag": "0000_silent_alex_power",
       "breakpoints": true
     }
   ]

@@ -8,6 +8,7 @@ import { toastManager } from "@/lib/toast-manager";
 import { Loader2, Plus, X } from "lucide-react";
 import { productSchema, ProductFormData } from "@/lib/zod.schema/products";
 import { useRouter } from "next/navigation";
+import ImageUploader from "./ImageUploader";
 
 interface Category {
   id: string;
@@ -31,6 +32,8 @@ export default function AddProduct({ categories }: AddProductProps) {
     handleSubmit,
     reset,
     formState: { errors },
+    setValue,
+    watch,
   } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
     defaultValues: {
@@ -38,9 +41,11 @@ export default function AddProduct({ categories }: AddProductProps) {
       categoryId: "",
       purchasePrice: 0,
       sellingPrice: 0,
-      imageUrl: "https://via.placeholder.com/150",
+      imageUrl: "",
     },
   });
+
+  const imageUrl = watch("imageUrl");
 
   const onSubmit = async (data: ProductFormData) => {
     setLoading(true);
@@ -48,11 +53,7 @@ export default function AddProduct({ categories }: AddProductProps) {
       const res = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...data,
-          purchasePrice: Number(data.purchasePrice),
-          sellingPrice: Number(data.sellingPrice),
-        }),
+        body: JSON.stringify(data),
       });
 
       if (!res.ok) {
@@ -85,8 +86,21 @@ export default function AddProduct({ categories }: AddProductProps) {
       {isOpen &&
         mounted &&
         createPortal(
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-9999 p-4 animate-in fade-in">
-            <div className="bg-white rounded-4xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl relative animate-in zoom-in-95 ring-8 ring-white/20">
+          <div 
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-9999 p-4 animate-in fade-in"
+            onClick={(e) => {
+              // Close only when clicking the backdrop, not the modal content
+              if (e.target === e.currentTarget) {
+                setIsOpen(false);
+              }
+            }}
+          >
+            <div 
+              className="bg-white rounded-4xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl relative animate-in zoom-in-95 ring-8 ring-white/20"
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              onFocus={(e) => e.stopPropagation()}
+            >
               <button
                 onClick={() => setIsOpen(false)}
                 className="absolute top-4 right-4 p-2 bg-slate-50 text-slate-400 rounded-full hover:bg-red-50 hover:text-red-500 transition-colors"
@@ -149,7 +163,14 @@ export default function AddProduct({ categories }: AddProductProps) {
                       <input
                         type="number"
                         step="0.01"
-                        {...register("purchasePrice", { valueAsNumber: true })}
+                        {...register("purchasePrice", { 
+                          valueAsNumber: true,
+                          setValueAs: (value) => {
+                            if (value === "" || value === null || value === undefined) return 0;
+                            const num = typeof value === "string" ? parseFloat(value) : value;
+                            return isNaN(num) ? 0 : Math.round(num * 100) / 100;
+                          }
+                        })}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-400"
                       />
                     </div>
@@ -160,24 +181,30 @@ export default function AddProduct({ categories }: AddProductProps) {
                       <input
                         type="number"
                         step="0.01"
-                        {...register("sellingPrice", { valueAsNumber: true })}
+                        {...register("sellingPrice", { 
+                          valueAsNumber: true,
+                          setValueAs: (value) => {
+                            if (value === "" || value === null || value === undefined) return 0;
+                            const num = typeof value === "string" ? parseFloat(value) : value;
+                            return isNaN(num) ? 0 : Math.round(num * 100) / 100;
+                          }
+                        })}
                         className="w-full bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-emerald-700 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>
                   </div>
 
-                  {/* Image URL */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase ml-2 mb-1">
-                      Image URL
-                    </label>
-                    <input
-                      type="url"
-                      {...register("imageUrl")}
-                      placeholder="https://..."
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                    />
-                  </div>
+                  {/* Image Uploader */}
+                  <ImageUploader
+                    value={imageUrl || ""}
+                    onChange={(url) => setValue("imageUrl", url)}
+                    label="Product Image"
+                  />
+                  {errors.imageUrl && (
+                    <p className="text-red-500 text-xs mt-1 ml-2 font-bold">
+                      {errors.imageUrl.message}
+                    </p>
+                  )}
 
                   {/* Buttons */}
                   <div className="pt-4 flex gap-3">

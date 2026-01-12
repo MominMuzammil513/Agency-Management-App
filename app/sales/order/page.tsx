@@ -11,7 +11,8 @@ export default async function OrderPage(props: {
 }) {
   const session = await getServerSession(authOptions);
 
-  if (!session || !session.user || session.user.role !== "salesman") {
+  // Allow owner_admin to access (role switching feature)
+  if (!session || !session.user || (session.user.role !== "salesman" && session.user.role !== "owner_admin")) {
     return redirect("/login");
   }
 

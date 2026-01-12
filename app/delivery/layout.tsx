@@ -10,7 +10,8 @@ export default async function DeliveryLayout({
 }) {
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user.role !== "delivery_boy") {
+  // Allow owner_admin to access (role switching feature)
+  if (!session || (session.user.role !== "delivery_boy" && session.user.role !== "owner_admin")) {
     redirect("/login");
   }
 
