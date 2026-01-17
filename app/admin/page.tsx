@@ -15,6 +15,7 @@ import { eq, and, sql, desc, gte, lte, or, ne, inArray } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { unstable_noStore as noStore } from "next/cache";
 import AdminDashboardClient from "./components/AdminDashboardClient";
+import AgencyError from "@/components/ui/AgencyError";
 
 // Disable caching for real-time updates
 export const dynamic = "force-dynamic";
@@ -37,11 +38,7 @@ export default async function AdminHomePage() {
     .limit(1);
 
   if (!ownerData?.agencyId) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-red-500 font-bold">
-        Error: Agency not found for this user.
-      </div>
-    );
+    return <AgencyError />;
   }
   const agencyId = ownerData.agencyId;
 
@@ -111,28 +108,58 @@ export default async function AdminHomePage() {
     sales,
   }));
 
-  // --- 🔍 3. SALES STAFF PERF (Today) ---
-  const salesStaffPerf = await db
+  // --- 🔍 3. SALES STAFF PERF (Today) - Group by staff only (one entry per staff) ---
+  // First get staff stats without area
+  const salesStaffRaw = await db
     .select({
       staffName: users.name,
       staffId: users.id,
-      areaName: areas.name,
       totalOrders: sql<number>`count(DISTINCT ${orders.id})`,
       totalAmount: sql<number>`sum(${orderItems.price})`,
     })
     .from(orders)
     .innerJoin(users, eq(orders.createdBy, users.id))
     .innerJoin(shops, eq(orders.shopId, shops.id))
-    .leftJoin(areas, eq(shops.areaId, areas.id))
     .innerJoin(orderItems, eq(orders.id, orderItems.orderId))
     .where(
       and(
         eq(shops.agencyId, agencyId),
         gte(orders.createdAt, startOfToday.toISOString()),
-        eq(users.role, "salesman")
+        eq(users.role, "salesman"),
+        sql`${orders.status} IN ('confirmed', 'delivered')`
       )
     )
-    .groupBy(users.id, areas.id);
+    .groupBy(users.id);
+
+  // Then get primary area for each staff (area with most orders today)
+  const salesStaffPerf = await Promise.all(
+    salesStaffRaw.map(async (staff) => {
+      const [primaryArea] = await db
+        .select({
+          areaName: areas.name,
+        })
+        .from(orders)
+        .innerJoin(shops, eq(orders.shopId, shops.id))
+        .leftJoin(areas, eq(shops.areaId, areas.id))
+        .where(
+          and(
+            eq(orders.createdBy, staff.staffId),
+            eq(shops.agencyId, agencyId),
+            gte(orders.createdAt, startOfToday.toISOString()),
+            sql`${orders.status} IN ('confirmed', 'delivered')`,
+            sql`${areas.name} IS NOT NULL`
+          )
+        )
+        .groupBy(areas.id)
+        .orderBy(desc(sql`count(DISTINCT ${orders.id})`))
+        .limit(1);
+
+      return {
+        ...staff,
+        areaName: primaryArea?.areaName || "Multiple Areas",
+      };
+    })
+  );
 
   // --- 🚚 4. DELIVERY STAFF PERF ---
   const deliveryStaffRaw = await db
@@ -157,25 +184,57 @@ export default async function AdminHomePage() {
     mobile: boy.mobile,
   }));
 
-  const recentOrders = await db
+  // Fetch recent orders with total amount and staff names
+  const recentOrdersRaw = await db
     .select({
       id: orders.id,
       createdAt: orders.createdAt,
       status: orders.status,
       shopName: shops.name,
       areaName: areas.name,
-      totalAmount: sql<number>`(
-        SELECT SUM(${orderItems.price}) 
-        FROM ${orderItems} 
-        WHERE ${orderItems.orderId} = ${orders.id}
-      )`.as("totalAmount"),
+      createdBy: orders.createdBy,
+      deliveredBy: orders.deliveredBy,
+      totalAmount: sql<number>`COALESCE(SUM(${orderItems.price}), 0)`,
     })
     .from(orders)
     .innerJoin(shops, eq(orders.shopId, shops.id))
     .leftJoin(areas, eq(shops.areaId, areas.id))
-    .where(eq(shops.agencyId, agencyId))
+    .leftJoin(orderItems, eq(orders.id, orderItems.orderId))
+    .where(eq(orders.agencyId, agencyId))
+    .groupBy(orders.id, shops.name, areas.name, orders.createdBy, orders.deliveredBy)
     .orderBy(desc(orders.createdAt))
-    .limit(50); // 🔥 Limit badha di 50 tak
+    .limit(50);
+
+  // Get unique user IDs to fetch names
+  const userIds = new Set<string>();
+  recentOrdersRaw.forEach(order => {
+    if (order.createdBy) userIds.add(order.createdBy);
+    if (order.deliveredBy) userIds.add(order.deliveredBy);
+  });
+
+  // Fetch staff names
+  const staffNamesMap = new Map<string, string>();
+  if (userIds.size > 0) {
+    const staffList = await db
+      .select({
+        id: users.id,
+        name: users.name,
+      })
+      .from(users)
+      .where(inArray(users.id, Array.from(userIds)));
+
+    staffList.forEach(staff => {
+      staffNamesMap.set(staff.id, staff.name);
+    });
+  }
+
+  // Add staff names to orders, check if owner admin
+  const ownerAdminId = session.user.id;
+  const recentOrders = recentOrdersRaw.map(order => ({
+    ...order,
+    createdByName: order.createdBy === ownerAdminId ? "You" : (staffNamesMap.get(order.createdBy) || "Unknown"),
+    deliveredByName: order.deliveredBy ? (order.deliveredBy === ownerAdminId ? "You" : (staffNamesMap.get(order.deliveredBy) || "Unknown")) : null,
+  }));
 
   return (
     <AdminDashboardClient

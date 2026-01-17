@@ -9,7 +9,7 @@ import { broadcastOrderUpdated } from "@/lib/realtime-broadcast";
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user.role !== "delivery_boy") {
+  if (!session || (session.user.role !== "delivery_boy" && session.user.role !== "owner_admin")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       .update(orders)
       .set({
         status: "delivered",
-        // You can add paymentStatus: 'paid' here if delivery implies payment collection
+        deliveredBy: session.user.id, // Track who delivered the order
         updatedAt: new Date().toISOString(), // Assuming string date for SQLite
       })
       .where(eq(orders.id, orderId));

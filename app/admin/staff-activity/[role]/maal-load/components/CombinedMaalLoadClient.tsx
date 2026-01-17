@@ -18,7 +18,10 @@ interface Order {
 
 interface Item {
   orderId: string;
+  productId?: string;
   productName: string;
+  categoryId?: string | null;
+  categoryName?: string | null;
   quantity: number;
   price: number;
 }
@@ -139,15 +142,24 @@ export default function CombinedMaalLoadClient({
           Load Summary
         </h2>
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3">
-          {Object.entries(summary).map(([productName, quantity]) => (
-            <div
-              key={productName}
-              className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0"
-            >
-              <span className="text-sm font-bold text-slate-800">{productName}</span>
-              <span className="text-sm font-bold text-emerald-600">{quantity} units</span>
-            </div>
-          ))}
+          {Object.entries(summary).map(([key, quantity]) => {
+            // Extract product name from key (format: categoryId:productName)
+            const productName = key.split(':').slice(1).join(':');
+            return (
+              <div
+                key={key}
+                className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0"
+              >
+                <div>
+                  <span className="text-sm font-bold text-slate-800 block">{productName}</span>
+                  <span className="text-xs text-slate-400 font-bold uppercase">
+                    {items.find(i => `${i.categoryId || 'uncategorized'}:${i.productName}` === key)?.categoryName || 'Uncategorized'}
+                  </span>
+                </div>
+                <span className="text-sm font-bold text-emerald-600">{quantity} units</span>
+              </div>
+            );
+          })}
         </div>
       </div>
 

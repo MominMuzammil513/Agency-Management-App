@@ -6,6 +6,7 @@ import { users, orders, shops, areas, orderItems, products } from "@/db/schemas"
 import { eq, and } from "drizzle-orm";
 import { unstable_noStore as noStore } from "next/cache";
 import BillClient from "./components/BillClient";
+import AgencyError from "@/components/ui/AgencyError";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -32,11 +33,7 @@ export default async function BillPage({ params }: PageProps) {
     .limit(1);
 
   if (!ownerData?.agencyId) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-red-500 font-bold">
-        Error: Agency not found.
-      </div>
-    );
+    return <AgencyError message="Error: Agency not found." />;
   }
 
   // Fetch order details

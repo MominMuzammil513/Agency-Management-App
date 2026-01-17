@@ -1,160 +1,115 @@
-"use client";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/authOptions";
+import { redirect } from "next/navigation";
+import { db } from "@/db/db";
+import { users, agencies, orders, shops, orderItems } from "@/db/schemas";
+import { eq, sql, and, ne, inArray, gte } from "drizzle-orm";
+import { unstable_noStore as noStore } from "next/cache";
+import SuperAdminDashboardClient from "./components/SuperAdminDashboardClient";
 
-import { useRouter } from "next/navigation";
-import { useState, FormEvent, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { Shield, Lock, AlertCircle, Loader2 } from "lucide-react";
-import { toastManager } from "@/lib/toast-manager";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-export default function SuperAdminPage() {
-  const router = useRouter();
-  const { data: session, status } = useSession();
-  const [password, setPassword] = useState<string>("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>("");
+export default async function SuperAdminPage() {
+  noStore();
+  const session = await getServerSession(authOptions);
 
-  // 🔑 Hardcoded password constant
-  const CORRECT_PASSWORD = "alhamdullilah";
+  if (!session || session.user.role !== "super_admin") {
+    redirect("/login");
+  }
 
-  // Check authentication
-  useEffect(() => {
-    if (status === "loading") return;
+  // Get system-wide statistics
+  const now = new Date();
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
 
-    if (!session) {
-      router.push("/login");
-      return;
-    }
+  // Total Agencies
+  const [agenciesCount] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(agencies);
 
-    // Check if user is super_admin
-    if (session.user?.role !== "super_admin") {
-      router.push("/unauthorized");
-      return;
-    }
-  }, [session, status, router]);
+  // Total Users (excluding super_admin)
+  const [usersCount] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(users)
+    .where(ne(users.role, "super_admin"));
 
-  // Show loading while checking session
-  if (status === "loading") {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 size={48} className="text-purple-600 animate-spin mx-auto mb-4" />
-          <p className="text-slate-600 font-medium">Verifying access...</p>
-        </div>
-      </div>
+  // Active Users
+  const [activeUsersCount] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(users)
+    .where(and(eq(users.isActive, true), ne(users.role, "super_admin")));
+
+  // Today's Orders
+  const [todayOrdersCount] = await db
+    .select({ count: sql<number>`count(DISTINCT ${orders.id})` })
+    .from(orders)
+    .innerJoin(shops, eq(orders.shopId, shops.id))
+    .where(
+      and(
+        gte(orders.createdAt, startOfToday.toISOString()),
+        inArray(orders.status, ["confirmed", "delivered"])
+      )
     );
-  }
 
-  // Don't render if not authenticated or not super_admin
-  if (!session || session.user?.role !== "super_admin") {
-    return null;
-  }
+  // Today's Sales
+  const [todaySalesResult] = await db
+    .select({ total: sql<number>`COALESCE(sum(${orderItems.price}), 0)` })
+    .from(orders)
+    .innerJoin(shops, eq(orders.shopId, shops.id))
+    .innerJoin(orderItems, eq(orders.id, orderItems.orderId))
+    .where(
+      and(
+        gte(orders.createdAt, startOfToday.toISOString()),
+        inArray(orders.status, ["confirmed", "delivered"])
+      )
+    );
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-
-    try {
-      if (password === CORRECT_PASSWORD) {
-        // ✅ Redirect if password matches
-        toastManager.success("Access granted!");
-        setTimeout(() => {
-          router.push("/superadmin/alhamdullilah");
-        }, 500);
-      } else {
-        // ❌ Show error if password is wrong
-        setError("Incorrect password. Please try again.");
-        setPassword("");
-        toastManager.error("Incorrect password");
-      }
-    } catch (err) {
-      setError("An error occurred. Please try again.");
-      toastManager.error("Something went wrong");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Get all agencies with owner info
+  const allAgencies = await db
+    .select({
+      id: agencies.id,
+      name: agencies.name,
+      ownerId: agencies.ownerId,
+      ownerName: users.name,
+      ownerEmail: users.email,
+      ownerMobile: users.mobile,
+      ownerAltMobile: users.altMobile,
+      ownerIsActive: users.isActive,
+      createdAt: agencies.createdAt,
+      totalUsers: sql<number>`(
+        SELECT COUNT(*) FROM ${users} WHERE ${users.agencyId} = ${agencies.id}
+      )`,
+      totalOrders: sql<number>`(
+        SELECT COUNT(DISTINCT ${orders.id}) 
+        FROM ${orders}
+        INNER JOIN ${shops} ON ${orders.shopId} = ${shops.id}
+        WHERE ${shops.agencyId} = ${agencies.id}
+        AND ${orders.status} IN ('confirmed', 'delivered')
+      )`,
+      totalSales: sql<number>`(
+        SELECT COALESCE(SUM(${orderItems.price}), 0)
+        FROM ${orders}
+        INNER JOIN ${shops} ON ${orders.shopId} = ${shops.id}
+        INNER JOIN ${orderItems} ON ${orders.id} = ${orderItems.orderId}
+        WHERE ${shops.agencyId} = ${agencies.id}
+        AND ${orders.status} IN ('confirmed', 'delivered')
+      )`,
+    })
+    .from(agencies)
+    .leftJoin(users, eq(agencies.ownerId, users.id))
+    .orderBy(agencies.createdAt);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 flex items-center justify-center p-6">
-      <div className="bg-white/90 backdrop-blur-xl rounded-4xl p-8 md:p-12 shadow-2xl border border-purple-100/50 max-w-md w-full">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <div className="h-16 w-16 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <Shield size={32} className="text-white" strokeWidth={2.5} />
-            </div>
-          </div>
-          <h1 className="text-3xl font-black text-slate-800 mb-2">
-            Super Admin Access
-          </h1>
-          <p className="text-slate-600 text-sm font-medium">
-            Enter your password to continue
-          </p>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"
-            >
-              <Lock size={16} className="text-purple-600" />
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                setError("");
-              }}
-              className={`w-full px-4 py-3 rounded-2xl border-2 transition-all focus:outline-none focus:ring-4 focus:ring-purple-100 ${
-                error
-                  ? "border-red-300 bg-red-50"
-                  : "border-slate-200 bg-slate-50 focus:border-purple-400"
-              }`}
-              placeholder="Enter password"
-              required
-              disabled={loading}
-              autoFocus
-            />
-            {error && (
-              <div className="mt-2 flex items-center gap-2 text-red-600 text-sm font-medium">
-                <AlertCircle size={16} />
-                <span>{error}</span>
-              </div>
-            )}
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading || !password}
-            className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3.5 px-6 rounded-2xl font-bold text-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <>
-                <Loader2 size={20} className="animate-spin" />
-                <span>Verifying...</span>
-              </>
-            ) : (
-              <>
-                <Shield size={20} />
-                <span>Access Dashboard</span>
-              </>
-            )}
-          </button>
-        </form>
-
-        {/* Footer */}
-        <div className="mt-6 text-center">
-          <p className="text-xs text-slate-400">
-            Protected area • Super Admin only
-          </p>
-        </div>
-      </div>
-    </div>
+    <SuperAdminDashboardClient
+      stats={{
+        totalAgencies: agenciesCount?.count || 0,
+        totalUsers: usersCount?.count || 0,
+        activeUsers: activeUsersCount?.count || 0,
+        todayOrders: todayOrdersCount?.count || 0,
+        todaySales: todaySalesResult?.total || 0,
+      }}
+      agencies={allAgencies}
+    />
   );
 }

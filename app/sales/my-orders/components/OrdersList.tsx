@@ -53,17 +53,20 @@ export default function OrdersList({ orders }: { orders: Order[] }) {
   const [viewOrder, setViewOrder] = useState<FullOrderDetails | null>(null);
   const [loadingSummary, setLoadingSummary] = useState<Record<
     string,
-    number
+    { quantity: number; categoryName: string }
   > | null>(null);
 
-  // 🔍 Filter Logic
+  // 🔍 Filter Logic - Only show pending and confirmed orders (exclude delivered and cancelled)
   const filteredOrders = useMemo(() => {
     const lower = searchQuery.toLowerCase();
-    return orders.filter(
-      (o) =>
-        o.shopName.toLowerCase().includes(lower) ||
-        (o.areaName && o.areaName.toLowerCase().includes(lower))
-    );
+    return orders
+      .filter(
+        (o) =>
+          (o.shopName.toLowerCase().includes(lower) ||
+            (o.areaName && o.areaName.toLowerCase().includes(lower))) &&
+          o.status !== "cancelled" &&
+          o.status !== "delivered" // Only show pending and confirmed
+      );
   }, [searchQuery, orders]);
 
   // ☑️ Selection Logic
@@ -111,10 +114,15 @@ export default function OrdersList({ orders }: { orders: Order[] }) {
     try {
       const items: any[] = await fetchDetails(selectedOrders);
 
-      const summary: Record<string, number> = {};
+      // Group by category + product name to separate same names from different categories
+      const summary: Record<string, { quantity: number; categoryName: string }> = {};
       items.forEach((item) => {
-        if (!summary[item.productName]) summary[item.productName] = 0;
-        summary[item.productName] += item.quantity;
+        // Use categoryId + productName as key to separate same names from different categories
+        const key = `${item.categoryId || 'uncategorized'}:${item.productName}`;
+        if (!summary[key]) {
+          summary[key] = { quantity: 0, categoryName: item.categoryName || 'Uncategorized' };
+        }
+        summary[key].quantity += item.quantity;
       });
 
       setLoadingSummary(summary);
@@ -217,9 +225,7 @@ export default function OrdersList({ orders }: { orders: Order[] }) {
             </p>
           </div>
         ) : (
-          filteredOrders
-            .filter((order) => order.status !== "cancelled" && order.status !== "delivered") // Filter out cancelled and delivered
-            .map((order) => {
+          filteredOrders.map((order) => {
               const dateObj = order.createdAt
                 ? new Date(order.createdAt)
                 : new Date();
@@ -474,19 +480,28 @@ export default function OrdersList({ orders }: { orders: Order[] }) {
               </div>
 
               <div className="space-y-2 mb-6">
-                {Object.entries(loadingSummary).map(([name, qty]) => (
-                  <div
-                    key={name}
-                    className="p-3 pl-4 flex justify-between items-center bg-slate-50 rounded-2xl border border-slate-100"
-                  >
-                    <span className="font-bold text-slate-700 text-sm">
-                      {name}
-                    </span>
-                    <span className="bg-slate-800 text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-md shadow-slate-200">
-                      {qty}
-                    </span>
-                  </div>
-                ))}
+                {Object.entries(loadingSummary).map(([key, data]) => {
+                  // Extract product name from key (format: categoryId:productName)
+                  const productName = key.split(':').slice(1).join(':');
+                  return (
+                    <div
+                      key={key}
+                      className="p-3 pl-4 flex justify-between items-center bg-slate-50 rounded-2xl border border-slate-100"
+                    >
+                      <div>
+                        <span className="font-bold text-slate-700 text-sm block">
+                          {productName}
+                        </span>
+                        <span className="text-xs text-slate-400 font-bold uppercase">
+                          {data.categoryName}
+                        </span>
+                      </div>
+                      <span className="bg-slate-800 text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-md shadow-slate-200">
+                        {data.quantity}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
 
               <button

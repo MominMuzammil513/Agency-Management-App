@@ -44,10 +44,20 @@ export default async function MyOrdersPage() {
     <div className="min-h-screen bg-emerald-50/60">
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-md p-6 sticky top-0 z-30 border-b border-emerald-100 shadow-sm rounded-b-4xl">
-        <h1 className="text-2xl font-black text-slate-800">My Orders 📋</h1>
-        <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mt-1">
-          History & Status
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-black text-slate-800">My Orders 📋</h1>
+            <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mt-1">
+              History & Status
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-3xl font-black text-emerald-600">
+              {myOrders.filter((o) => o.status !== "delivered" && o.status !== "cancelled").length}
+            </p>
+            <p className="text-xs text-slate-500 font-bold uppercase">Total Orders</p>
+          </div>
+        </div>
       </div>
 
       {/* List Component */}

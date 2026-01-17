@@ -7,12 +7,21 @@ import { connections } from "@/lib/realtime-connections";
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   
-  if (!session?.user?.agencyId) {
+  // Allow access for authenticated users
+  // For super_admin and owner_admin without agencyId, we'll handle gracefully
+  if (!session?.user) {
     return new Response("Unauthorized", { status: 401 });
   }
 
+  // For super_admin, they don't need agencyId for realtime
+  // For owner_admin and staff, agencyId is required
   const agencyId = session.user.agencyId;
   const userId = session.user.id;
+
+  // If user doesn't have agencyId and is not super_admin, reject
+  if (!agencyId && session.user.role !== "super_admin") {
+    return new Response("Agency ID required", { status: 403 });
+  }
 
   // Create SSE stream
   const stream = new ReadableStream({
@@ -21,9 +30,9 @@ export async function GET(req: NextRequest) {
       const data = `data: ${JSON.stringify({ type: "connected", message: "Real-time sync active" })}\n\n`;
       controller.enqueue(new TextEncoder().encode(data));
 
-      // Store connection (use agencyId only to support multiple tabs/users per agency)
-      // Format: agencyId:userId to allow multiple connections per user
-      const key = `${agencyId}:${userId}`;
+      // Store connection (use agencyId or role for super_admin)
+      // Format: agencyId:userId or role:userId for super_admin
+      const key = agencyId ? `${agencyId}:${userId}` : `${session.user.role}:${userId}`;
       if (!connections.has(key)) {
         connections.set(key, []);
       }

@@ -73,7 +73,8 @@ export default async function DeliveryHomePage() {
     .where(
       and(
         eq(shops.agencyId, me.agencyId),
-        eq(orders.status, "delivered")
+        eq(orders.status, "delivered"),
+        eq(orders.deliveredBy, session.user.id) // Only count orders delivered by this user
       )
     )
     .limit(1);

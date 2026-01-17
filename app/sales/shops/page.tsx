@@ -11,8 +11,8 @@ type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 export default async function ShopsPage(props: { searchParams: SearchParams }) {
   const session = await getServerSession(authOptions);
 
-  // Security Check
-  if (!session || !session.user || session.user.role !== "salesman") {
+  // Security Check - Allow owner_admin to access (role switching feature)
+  if (!session || !session.user || (session.user.role !== "salesman" && session.user.role !== "owner_admin")) {
     return redirect("/login");
   }
 

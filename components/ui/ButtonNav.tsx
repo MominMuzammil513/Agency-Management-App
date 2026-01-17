@@ -80,7 +80,7 @@ export default function BottomNav({
             className={`flex flex-col items-center gap-1 p-2 transition-all duration-300 rounded-xl ${
               active
                 ? "text-emerald-600 scale-105 bg-emerald-50 font-bold" // 🔥 Green Theme Active
-                : "text-slate-400 hover:text-emerald-500 hover:bg-slate-50"
+                : "text-slate-400"
             }`}
           >
             <Icon size={22} strokeWidth={active ? 2.5 : 2} />

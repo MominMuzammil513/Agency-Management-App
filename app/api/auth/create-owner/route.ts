@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/authOptions";
 import bcrypt from "bcryptjs";
 import { db } from "@/db/db";
 import { users, agencies } from "@/db/schemas";
@@ -10,6 +12,12 @@ import { eq } from "drizzle-orm";
 
 export async function POST(req: NextRequest) {
   try {
+    // Only super_admin can create owner admins
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== "super_admin") {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
     const data = createOwnerAdminSchema.parse(body);
 
@@ -55,12 +63,16 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    try {
-      handleDbError(error);
-    } catch (dbError) {
-      return handleApiError(dbError);
+    // Handle database errors
+    if (error && typeof error === "object" && "code" in error) {
+      try {
+        handleDbError(error);
+      } catch (dbError) {
+        return handleApiError(dbError);
+      }
     }
-
+    
+    // Handle all other errors (including ApiError and ZodError)
     return handleApiError(error);
   }
 }

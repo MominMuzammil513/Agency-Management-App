@@ -154,8 +154,8 @@ export default function StatsClient({ data }: StatsProps) {
           <h3 className="font-black text-slate-800 mb-6">
             Area Performance 🏘️
           </h3>
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-64 w-full min-h-[256px]">
+            <ResponsiveContainer width="100%" height="100%" minHeight={256}>
               <BarChart
                 data={graphData}
                 layout="vertical"

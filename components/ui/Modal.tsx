@@ -22,7 +22,7 @@ export const Modal: React.FC<ModalProps> = ({
           <h3 className="text-xl font-bold text-slate-800">{title}</h3>
           <button
             onClick={onClose}
-            className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 text-slate-500"
+            className="p-2 bg-slate-100 rounded-full text-slate-500"
           >
             <X size={20} />
           </button>

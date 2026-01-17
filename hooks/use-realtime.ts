@@ -35,14 +35,24 @@ export function useRealtime(
       return;
     }
 
+    // For super_admin, realtime might not be needed, but we'll allow connection
+    // For other roles, agencyId is required
+    if (session.user.role !== "super_admin" && !session.user.agencyId) {
+      // Skip realtime connection if no agencyId (except for super_admin)
+      return;
+    }
+
     // Close existing connection if any
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
       eventSourceRef.current = null;
     }
 
-    // Create SSE connection
-    const eventSource = new EventSource("/api/realtime");
+    // Create SSE connection - Use absolute URL for network access
+    const apiUrl = typeof window !== "undefined" 
+      ? `${window.location.origin}/api/realtime`
+      : "/api/realtime";
+    const eventSource = new EventSource(apiUrl);
     eventSourceRef.current = eventSource;
 
     eventSource.onopen = () => {

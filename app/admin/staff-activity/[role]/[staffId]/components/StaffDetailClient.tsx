@@ -39,6 +39,7 @@ interface StaffDetailClientProps {
   period: "daily" | "weekly" | "monthly" | "custom";
   dateRange: { from: string; to: string };
   role: "salesman" | "delivery_boy";
+  isOwnerAdmin?: boolean;
 }
 
 export default function StaffDetailClient({
@@ -48,6 +49,7 @@ export default function StaffDetailClient({
   period,
   dateRange,
   role,
+  isOwnerAdmin = false,
 }: StaffDetailClientProps) {
   const router = useRouter();
   const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null);
@@ -101,7 +103,14 @@ export default function StaffDetailClient({
         <div className="px-5 py-4 flex items-center gap-3">
           <BackButton />
           <div className="flex-1">
-            <h1 className="text-xl font-black text-slate-800">{staff.name}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-black text-slate-800">{staff.name}</h1>
+              {isOwnerAdmin && (
+                <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full text-xs font-bold">
+                  You
+                </span>
+              )}
+            </div>
             <p className="text-xs text-slate-500">{staff.mobile}</p>
           </div>
         </div>
@@ -124,19 +133,22 @@ export default function StaffDetailClient({
       {/* Date Filters */}
       <div className="px-5 py-4 bg-white border-b border-slate-100">
         <div className="flex gap-2 mb-3">
-          {(["daily", "weekly", "monthly", "custom"] as const).map((p) => (
-            <button
-              key={p}
-              onClick={() => handlePeriodChange(p)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors ${
-                dateFilter === p
-                  ? "bg-emerald-600 text-white"
-                  : "bg-slate-100 text-slate-600"
-              }`}
-            >
-              {p.charAt(0).toUpperCase() + p.slice(1)}
-            </button>
-          ))}
+          {(["daily", "weekly", "monthly", "custom"] as const).map((p) => {
+            const displayName = p === "daily" ? "Today" : p.charAt(0).toUpperCase() + p.slice(1);
+            return (
+              <button
+                key={p}
+                onClick={() => handlePeriodChange(p)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors ${
+                  dateFilter === p
+                    ? "bg-emerald-600 text-white"
+                    : "bg-slate-100 text-slate-600"
+                }`}
+              >
+                {displayName}
+              </button>
+            );
+          })}
         </div>
 
         {showCustomDate && (
@@ -187,7 +199,7 @@ export default function StaffDetailClient({
                 <button
                   key={area.areaId!}
                   onClick={() => handleViewArea(area.areaId)}
-                  className="w-full bg-white rounded-2xl p-4 shadow-sm border border-slate-100 hover:border-emerald-200 transition-colors text-left"
+                  className="w-full bg-white rounded-2xl p-4 shadow-sm border border-slate-100 transition-colors text-left"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
@@ -265,7 +277,7 @@ export default function StaffDetailClient({
                         `/admin/staff-activity/${role}/${staff.id}/order/${order.id}/bill`
                       )
                     }
-                    className="flex-1 bg-emerald-100 text-emerald-700 px-3 py-2 rounded-xl font-bold text-xs hover:bg-emerald-200 transition-colors"
+                    className="flex-1 bg-emerald-100 text-emerald-700 px-3 py-2 rounded-xl font-bold text-xs transition-colors"
                   >
                     Bill
                   </button>

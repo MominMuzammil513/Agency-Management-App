@@ -6,6 +6,7 @@ import { orders, orderItems, users, shops, areas } from "@/db/schemas";
 import { eq, and, sql, gte, lte, inArray } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import StaffEarningsClient from "./components/StaffEarningsClient";
+import AgencyError from "@/components/ui/AgencyError";
 import { unstable_noStore as noStore } from "next/cache";
 
 export const dynamic = "force-dynamic";
@@ -35,11 +36,7 @@ export default async function StaffEarningsPage({
     .limit(1);
 
   if (!ownerData?.agencyId) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-red-500 font-bold">
-        Error: Agency not found
-      </div>
-    );
+    return <AgencyError message="Error: Agency not found." />;
   }
 
   const agencyId = ownerData.agencyId;

@@ -8,6 +8,13 @@
       "when": 1768260094508,
       "tag": "0000_silent_alex_power",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1768632705300,
+      "tag": "0001_stiff_nova",
+      "breakpoints": true
     }
   ]
 }

@@ -22,7 +22,16 @@ interface DashboardProps {
     activeStaff: number;
   };
   graphData: { name: string; sales: number }[];
-  recentOrders: any[];
+  recentOrders: Array<{
+    id: string;
+    createdAt: string;
+    status: string;
+    shopName: string;
+    areaName: string | null;
+    totalAmount: number;
+    createdByName?: string;
+    deliveredByName?: string | null;
+  }>;
   staffData: {
     sales: any[];
     delivery: any[];
@@ -129,8 +138,8 @@ export default function AdminDashboardClient({
               Last 7 Days
             </div>
           </div>
-          <div className="h-48 w-full">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-48 w-full min-h-[192px]">
+            <ResponsiveContainer width="100%" height="100%" minHeight={192}>
               <AreaChart data={graphData}>
                 <defs>
                   <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
@@ -203,23 +212,23 @@ export default function AdminDashboardClient({
                   >
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 bg-emerald-200 text-emerald-700 rounded-full flex items-center justify-center font-bold text-sm">
-                        {staff.staffName.charAt(0)}
+                        {staff.staffName?.trim().charAt(0).toUpperCase() || "?"}
                       </div>
-                      <div>
-                        <p className="font-bold text-slate-800 text-sm">
-                          {staff.staffName}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-slate-800 text-sm truncate">
+                          {staff.staffName || "Unknown Staff"}
                         </p>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase">
-                          📍 {staff.areaName}
+                        <p className="text-[10px] text-slate-500 font-bold uppercase truncate">
+                          📍 {staff.areaName || "No Area"}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-black text-emerald-600">
-                        ₹{staff.totalAmount}
+                      <p className="font-black text-emerald-600 text-right">
+                        ₹{Number(staff.totalAmount || 0).toLocaleString()}
                       </p>
-                      <p className="text-[10px] text-slate-400">
-                        {staff.totalOrders} Orders
+                      <p className="text-[10px] text-slate-400 text-right">
+                        {staff.totalOrders || 0} Order{staff.totalOrders !== 1 ? "s" : ""}
                       </p>
                     </div>
                   </div>
@@ -239,22 +248,22 @@ export default function AdminDashboardClient({
                 >
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 bg-orange-200 text-orange-700 rounded-full flex items-center justify-center font-bold text-sm">
-                      <Truck size={18} />
+                      {staff.staffName?.trim().charAt(0).toUpperCase() || <Truck size={18} />}
                     </div>
-                    <div>
-                      <p className="font-bold text-slate-800 text-sm">
-                        {staff.staffName}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-slate-800 text-sm truncate">
+                        {staff.staffName || "Unknown Staff"}
                       </p>
                       <p className="text-[10px] text-emerald-600 font-bold uppercase flex items-center gap-1">
                         <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>{" "}
-                        {staff.status}
+                        {staff.status || "On Duty"}
                       </p>
                     </div>
                   </div>
                   <div>
                     <a
                       href={`tel:${staff.mobile}`}
-                      className="bg-white p-2 rounded-full text-slate-400 hover:text-orange-600 shadow-sm border border-slate-100 block"
+                      className="bg-white p-2 rounded-full text-slate-400 shadow-sm border border-slate-100 block"
                     >
                       <Phone size={16} />
                     </a>
@@ -283,7 +292,7 @@ export default function AdminDashboardClient({
                       ? filter === "Delivered"
                         ? "bg-emerald-500 text-white"
                         : "bg-slate-800 text-white"
-                      : "text-slate-400 hover:text-slate-600"
+                      : "text-slate-400"
                   }`}
                 >
                   {filter}
@@ -306,11 +315,11 @@ export default function AdminDashboardClient({
                 return (
                   <div
                     key={order.id}
-                    className="bg-white p-4 rounded-4xl shadow-sm border border-slate-50 flex justify-between items-center hover:scale-[1.01] transition-transform"
+                    className="bg-white p-2.5 rounded-2xl shadow-sm border border-slate-50 flex justify-between items-center gap-2"
                   >
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
                       <div
-                        className={`h-12 w-12 rounded-2xl flex items-center justify-center text-lg shadow-inner ${
+                        className={`h-9 w-9 flex-shrink-0 rounded-full flex items-center justify-center ${
                           isDelivered
                             ? "bg-emerald-100 text-emerald-600"
                             : isCancelled
@@ -319,39 +328,55 @@ export default function AdminDashboardClient({
                         }`}
                       >
                         {isDelivered ? (
-                          <CheckCircle2 size={20} />
+                          <CheckCircle2 size={18} />
                         ) : isCancelled ? (
-                          <XCircle size={20} />
+                          <XCircle size={18} />
                         ) : (
-                          <Clock size={20} />
+                          <Clock size={18} />
                         )}
                       </div>
-                      <div>
-                        <h4 className="font-bold text-slate-800 text-sm">
-                          {order.shopName}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-slate-800 text-sm truncate">
+                          {order.shopName || "Unknown Shop"}
                         </h4>
-                        <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
-                          <span>{order.areaName || "Unknown Area"}</span>
+                        <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-slate-400 mt-0.5">
+                          <span className="truncate">{order.areaName || "Unknown"}</span>
                           <span>•</span>
-                          <span>
+                          <span className="whitespace-nowrap">
                             {new Date(order.createdAt).toLocaleTimeString([], {
                               hour: "2-digit",
                               minute: "2-digit",
                             })}
                           </span>
+                          {order.createdByName && (
+                            <>
+                              <span>•</span>
+                              <span className="text-emerald-600 font-bold whitespace-nowrap">
+                                By: {order.createdByName}
+                              </span>
+                            </>
+                          )}
+                          {order.deliveredByName && order.status === "delivered" && (
+                            <>
+                              <span>•</span>
+                              <span className="text-orange-600 font-bold whitespace-nowrap">
+                                Del: {order.deliveredByName}
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex-shrink-0 ml-2">
                       <p
-                        className={`font-black ${
+                        className={`font-black text-sm ${
                           isDelivered ? "text-emerald-600" : "text-slate-800"
                         }`}
                       >
-                        ₹{order.totalAmount}
+                        ₹{Number(order.totalAmount || 0).toLocaleString()}
                       </p>
                       <span
-                        className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                        className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase ${
                           isDelivered
                             ? "bg-emerald-50 text-emerald-600"
                             : isCancelled

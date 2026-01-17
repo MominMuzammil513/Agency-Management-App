@@ -8,6 +8,7 @@ import StaffList from "./components/StaffList";
 import { Users } from "lucide-react";
 import { redirect } from "next/navigation";
 import { Staff, StaffRole } from "./components/types";
+import AgencyError from "@/components/ui/AgencyError";
 
 export default async function ManageStaffPage() {
   const session = await getServerSession(authOptions);
@@ -23,7 +24,7 @@ export default async function ManageStaffPage() {
     .limit(1);
 
   if (!owner?.agencyId) {
-    return <div className="p-10 text-red-500">Error: Agency not found</div>;
+    return <AgencyError message="Error: Agency not found." />;
   }
 
   // Fetch ALL staff (Active + Inactive)

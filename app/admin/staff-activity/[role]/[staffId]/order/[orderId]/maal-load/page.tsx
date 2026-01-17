@@ -2,10 +2,11 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
 import { db } from "@/db/db";
-import { users, orders, shops, areas, orderItems, products } from "@/db/schemas";
+import { users, orders, shops, areas, orderItems, products, categories } from "@/db/schemas";
 import { eq, and, sql } from "drizzle-orm";
 import { unstable_noStore as noStore } from "next/cache";
 import MaalLoadClient from "./components/MaalLoadClient";
+import AgencyError from "@/components/ui/AgencyError";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -32,11 +33,7 @@ export default async function MaalLoadPage({ params }: PageProps) {
     .limit(1);
 
   if (!ownerData?.agencyId) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-red-500 font-bold">
-        Error: Agency not found.
-      </div>
-    );
+    return <AgencyError message="Error: Agency not found." />;
   }
 
   // Fetch order details
@@ -64,22 +61,28 @@ export default async function MaalLoadPage({ params }: PageProps) {
     redirect("/admin/staff-activity");
   }
 
-  // Fetch order items
+  // Fetch order items with category information
   const items = await db
     .select({
+      productId: products.id,
       productName: products.name,
+      categoryId: products.categoryId,
+      categoryName: categories.name,
       quantity: orderItems.quantity,
       price: orderItems.price,
     })
     .from(orderItems)
     .innerJoin(products, eq(orderItems.productId, products.id))
+    .leftJoin(categories, eq(products.categoryId, categories.id))
     .where(eq(orderItems.orderId, orderId));
 
-  // Calculate summary
+  // Calculate summary - Group by categoryId + productName to separate same names
   const summary: Record<string, number> = {};
   items.forEach((item) => {
-    if (!summary[item.productName]) summary[item.productName] = 0;
-    summary[item.productName] += item.quantity;
+    // Use categoryId:productName as key to separate same names from different categories
+    const key = `${item.categoryId || 'uncategorized'}:${item.productName}`;
+    if (!summary[key]) summary[key] = 0;
+    summary[key] += item.quantity;
   });
 
   return (

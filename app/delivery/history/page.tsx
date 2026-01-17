@@ -29,7 +29,7 @@ export default async function DeliveryHistoryPage() {
 
   const agencyId = me.agencyId; // Ab yeh confirmed String hai
 
-  // 2. Fetch Completed Orders
+  // 2. Fetch Completed Orders (only orders delivered by this delivery boy)
   const historyOrders = await db
     .select({
       id: orders.id,
@@ -43,8 +43,9 @@ export default async function DeliveryHistoryPage() {
     .leftJoin(areas, eq(shops.areaId, areas.id))
     .where(
       and(
-        eq(shops.agencyId, agencyId), // ✅ No Error Here
-        eq(orders.status, "delivered")
+        eq(shops.agencyId, agencyId),
+        eq(orders.status, "delivered"),
+        eq(orders.deliveredBy, session.user.id) // Only orders delivered by this user
       )
     )
     .orderBy(desc(orders.createdAt))
