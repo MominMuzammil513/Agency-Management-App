@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
-import { Users, ShoppingCart, Truck, CheckSquare, FileText, Calendar, Download, Package, X } from "lucide-react";
+import { Users, ShoppingCart, Truck, CheckSquare, FileText, Calendar, Download, Package, X, Loader2 } from "lucide-react";
 import BackButton from "@/components/ui/BackButton";
 import { generatePDF } from "@/lib/generate-pdf";
 import { toastManager } from "@/lib/toast-manager";
@@ -39,6 +39,7 @@ export default function StaffActivityClient({
   );
   const [loadSheetData, setLoadSheetData] = useState<any>(null);
   const [loadingLoadSheet, setLoadingLoadSheet] = useState(false);
+  const [loadingStaffId, setLoadingStaffId] = useState<string | null>(null);
 
   const currentStaffList = activeTab === "salesman" ? salesmen : deliveryBoys;
 
@@ -51,6 +52,7 @@ export default function StaffActivityClient({
   };
 
   const handleViewStaff = (staffId: string) => {
+    setLoadingStaffId(staffId);
     router.push(`/admin/staff-activity/${activeTab}/${staffId}`);
   };
 
@@ -228,9 +230,17 @@ export default function StaffActivityClient({
                   {/* View Button */}
                   <button
                     onClick={() => handleViewStaff(staff.id)}
-                    className="bg-slate-100 text-slate-700 px-4 py-2 rounded-xl font-bold text-xs hover:bg-slate-200 transition-colors"
+                    disabled={loadingStaffId === staff.id}
+                    className="bg-slate-100 text-slate-700 px-4 py-2 rounded-xl font-bold text-xs hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-wait flex items-center gap-2"
                   >
-                    View
+                    {loadingStaffId === staff.id ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" />
+                        <span>Loading...</span>
+                      </>
+                    ) : (
+                      "View"
+                    )}
                   </button>
                 </div>
               </div>
