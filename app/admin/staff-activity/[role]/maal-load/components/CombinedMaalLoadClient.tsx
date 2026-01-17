@@ -141,25 +141,38 @@ export default function CombinedMaalLoadClient({
           <Package size={20} />
           Load Summary
         </h2>
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3">
-          {Object.entries(summary).map(([key, quantity]) => {
-            // Extract product name from key (format: categoryId:productName)
-            const productName = key.split(':').slice(1).join(':');
-            return (
-              <div
-                key={key}
-                className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0"
-              >
-                <div>
-                  <span className="text-sm font-bold text-slate-800 block">{productName}</span>
-                  <span className="text-xs text-slate-400 font-bold uppercase">
-                    {items.find(i => `${i.categoryId || 'uncategorized'}:${i.productName}` === key)?.categoryName || 'Uncategorized'}
-                  </span>
-                </div>
-                <span className="text-sm font-bold text-emerald-600">{quantity} units</span>
-              </div>
-            );
-          })}
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          {Object.entries(summary).length === 0 ? (
+            <div className="text-center py-8 text-slate-400">
+              <Package size={48} className="mx-auto mb-3 opacity-50" />
+              <p className="font-bold">No products found</p>
+              <p className="text-xs mt-1">No orders available for selected staff</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {Object.entries(summary).map(([key, quantity]) => {
+                // Extract product name from key (format: categoryId:productName)
+                const productName = key.split(':').slice(1).join(':');
+                const categoryName = items.find(i => `${i.categoryId || 'uncategorized'}:${i.productName}` === key)?.categoryName || 'Uncategorized';
+                return (
+                  <div
+                    key={key}
+                    className="flex items-center justify-between py-3 px-2 bg-slate-50 rounded-xl border border-slate-100 hover:bg-slate-100 transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-bold text-slate-800 block truncate">{productName}</span>
+                      <span className="text-xs text-slate-400 font-bold uppercase mt-0.5 block">
+                        {categoryName}
+                      </span>
+                    </div>
+                    <span className="text-base font-black text-emerald-600 ml-3 flex-shrink-0">
+                      {quantity}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
@@ -170,7 +183,14 @@ export default function CombinedMaalLoadClient({
           Orders ({orders.length})
         </h2>
         <div className="space-y-2">
-          {orders.map((order) => {
+          {orders.length === 0 ? (
+            <div className="text-center py-12 text-slate-400 bg-white rounded-2xl p-6">
+              <FileText size={48} className="mx-auto mb-3 opacity-50" />
+              <p className="font-bold">No orders found</p>
+              <p className="text-xs mt-1">No orders available for selected staff in this period</p>
+            </div>
+          ) : (
+            orders.map((order) => {
             const orderItems = items.filter((item) => item.orderId === order.id);
             const orderTotal = orderItems.reduce((sum, item) => sum + item.price, 0);
             const staffName = staffList.find((s) => s.id === order.createdBy)?.name || "Unknown";
@@ -208,7 +228,8 @@ export default function CombinedMaalLoadClient({
                 </div>
               </div>
             );
-          })}
+          })
+          )}
         </div>
       </div>
     </div>

@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
 import { db } from "@/db/db";
 import { users, orders, shops, areas, orderItems, products, categories } from "@/db/schemas";
-import { eq, and, sql, inArray } from "drizzle-orm";
+import { eq, and, sql, inArray, or, isNull } from "drizzle-orm";
 import { unstable_noStore as noStore } from "next/cache";
 import CombinedMaalLoadClient from "./components/CombinedMaalLoadClient";
 import AgencyError from "@/components/ui/AgencyError";
@@ -47,15 +47,22 @@ export default async function CombinedMaalLoadPage({ params, searchParams }: Pag
   // Build where conditions
   const baseConditions = [
     eq(shops.agencyId, ownerData.agencyId),
-    inArray(orders.createdBy, staffIdArray),
   ];
 
   if (role === "salesman") {
-    baseConditions.push(sql`${orders.status} IN ('confirmed', 'delivered')`);
+    // For salesman, filter by createdBy and show all non-cancelled orders
+    baseConditions.push(inArray(orders.createdBy, staffIdArray));
+    baseConditions.push(sql`${orders.status} != 'cancelled'`);
   } else {
-    // For delivery boy, filter by who delivered the orders
+    // For delivery boy, show delivered orders
     baseConditions.push(eq(orders.status, "delivered"));
-    baseConditions.push(inArray(orders.deliveredBy, staffIdArray)); // Filter by deliveredBy
+    // For delivery boy, filter by deliveredBy OR null (for backward compatibility with old orders)
+    baseConditions.push(
+      or(
+        inArray(orders.deliveredBy, staffIdArray),
+        isNull(orders.deliveredBy)
+      )!
+    );
   }
 
   // Fetch all orders from selected staff

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, MapPin, ShoppingBag, FileText, ArrowLeft } from "lucide-react";
+import { Calendar, MapPin, ShoppingBag, FileText, ArrowLeft, Loader2 } from "lucide-react";
 import BackButton from "@/components/ui/BackButton";
 
 interface Staff {
@@ -54,6 +54,7 @@ export default function StaffDetailClient({
   const router = useRouter();
   const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null);
   const [dateFilter, setDateFilter] = useState<"daily" | "weekly" | "monthly" | "custom">(period);
+  const [loadingAreaId, setLoadingAreaId] = useState<string | null>(null);
   const [customFrom, setCustomFrom] = useState<string>(
     new Date(dateRange.from).toISOString().split("T")[0]
   );
@@ -84,6 +85,7 @@ export default function StaffDetailClient({
 
   const handleViewArea = (areaId: string | null) => {
     if (!areaId) return;
+    setLoadingAreaId(areaId);
     router.push(`/admin/staff-activity/${role}/${staff.id}/area/${areaId}`);
   };
 
@@ -189,29 +191,39 @@ export default function StaffDetailClient({
         </h2>
         <div className="space-y-2">
           {areas.length === 0 ? (
-            <div className="text-center py-8 text-slate-400">
+            <div className="text-center py-12 text-slate-400 bg-white rounded-2xl p-6">
+              <MapPin size={48} className="mx-auto mb-3 opacity-50" />
               <p className="font-bold">No areas found</p>
+              <p className="text-xs mt-1">No orders in any area for this period</p>
             </div>
           ) : (
             areas
               .filter((area) => area.areaId !== null)
-              .map((area) => (
-                <button
-                  key={area.areaId!}
-                  onClick={() => handleViewArea(area.areaId)}
-                  className="w-full bg-white rounded-2xl p-4 shadow-sm border border-slate-100 transition-colors text-left"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <h3 className="font-bold text-slate-800">{area.areaName || "Unknown Area"}</h3>
-                      <p className="text-xs text-slate-500 mt-1">
-                        {area.totalOrders} orders • ₹{area.totalAmount.toLocaleString()}
-                      </p>
+              .map((area) => {
+                const isLoading = loadingAreaId === area.areaId;
+                return (
+                  <button
+                    key={area.areaId!}
+                    onClick={() => handleViewArea(area.areaId)}
+                    disabled={isLoading}
+                    className="w-full bg-white rounded-2xl p-4 shadow-sm border border-slate-100 transition-colors text-left disabled:opacity-50 disabled:cursor-wait"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-bold text-slate-800">{area.areaName || "Unknown Area"}</h3>
+                        <p className="text-xs text-slate-500 mt-1">
+                          {area.totalOrders} orders • ₹{area.totalAmount.toLocaleString()}
+                        </p>
+                      </div>
+                      {isLoading ? (
+                        <Loader2 size={18} className="text-emerald-600 animate-spin" />
+                      ) : (
+                        <ArrowLeft size={18} className="text-slate-400 rotate-180" />
+                      )}
                     </div>
-                    <ArrowLeft size={18} className="text-slate-400 rotate-180" />
-                  </div>
-                </button>
-              ))
+                  </button>
+                );
+              })
           )}
         </div>
       </div>
@@ -224,8 +236,12 @@ export default function StaffDetailClient({
         </h2>
         <div className="space-y-2">
           {filteredOrders.length === 0 ? (
-            <div className="text-center py-8 text-slate-400">
+            <div className="text-center py-12 text-slate-400 bg-white rounded-2xl p-6">
+              <ShoppingBag size={48} className="mx-auto mb-3 opacity-50" />
               <p className="font-bold">No orders found</p>
+              <p className="text-xs mt-1">
+                {selectedAreaId ? "No orders in this area" : "No orders for this period"}
+              </p>
             </div>
           ) : (
             filteredOrders.map((order) => (

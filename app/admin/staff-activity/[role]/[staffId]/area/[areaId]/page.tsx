@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
 import { db } from "@/db/db";
 import { users, orders, shops, areas, orderItems } from "@/db/schemas";
-import { eq, and, sql, desc } from "drizzle-orm";
+import { eq, and, sql, desc, or, isNull } from "drizzle-orm";
 import { unstable_noStore as noStore } from "next/cache";
 import AreaDetailClient from "./components/AreaDetailClient";
 import AgencyError from "@/components/ui/AgencyError";
@@ -68,10 +68,18 @@ export default async function AreaDetailPage({ params }: PageProps) {
 
   if (role === "salesman") {
     baseConditions.push(eq(orders.createdBy, staffId));
-    baseConditions.push(sql`${orders.status} IN ('confirmed', 'delivered')`);
+    // For salesman, show all non-cancelled orders (pending, confirmed, delivered)
+    baseConditions.push(sql`${orders.status} != 'cancelled'`);
   } else {
+    // For delivery boy, show delivered orders
     baseConditions.push(eq(orders.status, "delivered"));
-    baseConditions.push(eq(orders.deliveredBy, staffId)); // Filter by who delivered
+    // Handle both deliveredBy set and null (for backward compatibility)
+    baseConditions.push(
+      or(
+        eq(orders.deliveredBy, staffId),
+        isNull(orders.deliveredBy)
+      )!
+    );
   }
 
   // Fetch shops with order counts

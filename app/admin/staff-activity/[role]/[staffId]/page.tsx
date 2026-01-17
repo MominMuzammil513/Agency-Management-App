@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
 import { db } from "@/db/db";
 import { users, orders, shops, areas, orderItems } from "@/db/schemas";
-import { eq, and, sql, desc, gte, lte, inArray } from "drizzle-orm";
+import { eq, and, sql, desc, gte, lte, inArray, or, isNull } from "drizzle-orm";
 import { unstable_noStore as noStore } from "next/cache";
 import StaffDetailClient from "./components/StaffDetailClient";
 import AgencyError from "@/components/ui/AgencyError";
@@ -139,12 +139,20 @@ export default async function StaffDetailPage({ params, searchParams }: PageProp
 
   if (role === "salesman") {
     baseConditions.push(eq(orders.createdBy, staffId));
-    // For salesman, show confirmed and delivered orders
-    baseConditions.push(inArray(orders.status, ["confirmed", "delivered"]));
+    // For salesman, show all orders (pending, confirmed, delivered) - don't exclude pending
+    // Only exclude cancelled orders
+    baseConditions.push(sql`${orders.status} != 'cancelled'`);
   } else {
     // For delivery boy, show delivered orders by this specific delivery boy
+    // Handle both deliveredBy set and null (for old orders without deliveredBy)
     baseConditions.push(eq(orders.status, "delivered"));
-    baseConditions.push(eq(orders.deliveredBy, staffId)); // Filter by who delivered
+    // Use OR condition: either deliveredBy matches OR it's null (for backward compatibility)
+    baseConditions.push(
+      or(
+        eq(orders.deliveredBy, staffId),
+        isNull(orders.deliveredBy)
+      )!
+    );
   }
 
   // Fetch areas with order counts
